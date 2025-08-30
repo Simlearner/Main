@@ -155,13 +155,13 @@
     }
 
     function packageMeta(id) {
-      if (id==='basic') return { name:'Basic', price:10 };
-      if (id==='advanced') return { name:'Premium', price:15 };
-      if (id==='hyper') return { name:'Deluxe', price:20 };
-      if (id==='basicPP') return { name:'BasicPP', price:10 };
-      if (id==='advancedPP') return { name:'PremiumPP', price:15 };
-      if (id==='hyperPP') return { name:'Deluxe', price:20 };
-      return { name:id, price:0 };
+      if (id==='basic') return { name:'Basic', price:10, met:'Stripe'};
+      if (id==='advanced') return { name:'Premium', price:15, met:'Stripe'};
+      if (id==='hyper') return { name:'Deluxe', price:20, met:'Stripe'};
+      if (id==='basicPP') return { name:'BasicPP', price:10, met:'PayPal'};
+      if (id==='advancedPP') return { name:'PremiumPP', price:15, met:'Paypal'};
+      if (id==='hyperPP') return { name:'Deluxe', price:20, met:'PayPal'};
+      return { name:id, price:0, met:0};
     }
 
     // Stripe (via Payment Links)
@@ -169,7 +169,7 @@
       const meta = packageMeta(packageId);
       const link = PAY_LINKS[packageId];
       if (!link) { toast('Stripe link not configured for this package.', 'error'); return; }
-      const bookingId = await recordBooking({packageId, packageName: meta.name, priceEUR: meta.price, method:'stripe', status:'initiated'});
+      const bookingId = await recordBooking({packageId, packageName: meta.name, priceEUR: meta.price, method: meta.met, status:'initiated'});
       if (!bookingId) return;
       // Attach bookingId to URL so you can reconcile on return (NOT a verification!)
       const url = new URL(link);
