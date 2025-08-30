@@ -155,17 +155,17 @@
     }
 
     function packageMeta(id) {
-      if (id==='basic') return { name:'Starter – 45 min', price:10 };
-      if (id==='advanced') return { name:'Advanced', price:15 };
-      if (id==='hyper') return { name:'Hyper', price:20 };
+      if (id==='basic') return { name:'Basic', price:10 };
+      if (id==='advanced') return { name:'Premium', price:15 };
+      if (id==='hyper') return { name:'Deluxe', price:20 };
       if (id==='basicPP') return { name:'BasicPP', price:10 };
-      if (id==='advancedPP') return { name:'AdvancedPP', price:15 };
-      if (id==='hyperPP') return { name:'HyperPP', price:20 };
+      if (id==='advancedPP') return { name:'PremiumPP', price:15 };
+      if (id==='hyperPP') return { name:'Deluxe', price:20 };
       return { name:id, price:0 };
     }
 
     // Stripe (via Payment Links)
-    async function payWithStripe(packageId) {
+    async function paywithboth(packageId) {
       const meta = packageMeta(packageId);
       const link = PAY_LINKS[packageId];
       if (!link) { toast('Stripe link not configured for this package.', 'error'); return; }
@@ -178,35 +178,7 @@
     }
 
     // PAYPAL smart buttons get mounted after auth state is known
-    function mountPayPalButtons() {
-      const packages = ['basic','advanced','hyper'];
-      packages.forEach(pkg => {
-        const containerId = `#paypal-${pkg}`;
-        const container = document.querySelector(containerId);
-        if (!container) return;
-        container.innerHTML = '';
-        // eslint-disable-next-line no-undef
-        paypal.Buttons({
-          style: { layout: 'horizontal', tagline: false, height: 40 },
-          createOrder: (data, actions) => {
-            const meta = packageMeta(pkg);
-            return actions.order.create({
-              purchase_units: [{ amount: { currency_code: 'EUR', value: meta.price.toString() }, description: `SimRacing Coaching – ${meta.name}` }]
-            });
-          },
-          onApprove: async (data, actions) => {
-            const details = await actions.order.capture();
-            const txId = details?.id || null;
-            const meta = packageMeta(pkg);
-            await recordBooking({ packageId: pkg, packageName: meta.name, priceEUR: meta.price, method:'paypal', status:'paid', providerOrderId: txId });
-            toast('Payment successful via PayPal. Booking saved.');
-            loadMyBookings();
-          },
-          onCancel: () => toast('PayPal payment cancelled.'),
-          onError: (err) => { console.error(err); toast('PayPal error. Check console.', 'error'); }
-        }).render(container);
-      });
-    }
+
 
     // Load bookings for the current user
     async function loadMyBookings() {
@@ -289,7 +261,7 @@
     });
 
     // Expose for Stripe buttons
-    window.payWithStripe = payWithStripe;
+    window.paywithboth = paywithboth;
 
     // Utility: smooth scroll to pricing
     window.scrollToPricing = () => document.getElementById('pricing').scrollIntoView({ behavior:'smooth'});
@@ -439,37 +411,37 @@
       <!-- Basic -->
       <div class="glass card p-6 flex flex-col gap-4">
         <div>
-          <div class="text-xl font-bold">Starter – 45 minutes</div>
+          <div class="text-xl font-bold">Basic</div>
           <div class="text-purplebrand-200">Perfect intro or quick tune-up</div>
         </div>
         <div class="text-3xl font-extrabold">€10</div>
         <div class="grid gap-2">
-          <button onclick="payWithStripe('basic')" class="btn w-full px-4 py-3 rounded-xl bg-purplebrand-600 hover:bg-purplebrand-500">Pay with Stripe</button>
-          <div id="paypal-basic"></div>
+          <button onclick="paywithboth('basic')" class="btn w-full px-4 py-3 rounded-xl bg-purplebrand-600 hover:bg-purplebrand-500">Pay with Stripe</button>
+          <button onclick="paywithboth('basicPP')" class="btn w-full px-4 py-3 rounded-xl bg-purplebrand-600 hover:bg-purplebrand-500">Pay with PayPal</button>
         </div>
       </div>
       <!-- Advanced -->
       <div class="glass card p-6 flex flex-col gap-4">
         <div>
-          <div class="text-xl font-bold">Advanced</div>
-          <div class="text-purplebrand-200">More time to dive into data</div>
+          <div class="text-xl font-bold">Premium</div>
+          <div class="text-purplebrand-200">More time to dive into Premium data</div>
         </div>
         <div class="text-3xl font-extrabold">€15</div>
         <div class="grid gap-2">
-          <button onclick="payWithStripe('advanced')" class="btn w-full px-4 py-3 rounded-xl bg-purplebrand-600 hover:bg-purplebrand-500">Pay with Stripe</button>
-          <div id="paypal-advanced"></div>
+          <button onclick="paywithboth('advanced')" class="btn w-full px-4 py-3 rounded-xl bg-purplebrand-600 hover:bg-purplebrand-500">Pay with Stripe</button>
+          <button onclick="paywithboth('advancedPP')" class="btn w-full px-4 py-3 rounded-xl bg-purplebrand-600 hover:bg-purplebrand-500">Pay with Paypal</button>
         </div>
       </div>
       <!-- Hyper -->
       <div class="glass card p-6 flex flex-col gap-4">
         <div>
-          <div class="text-xl font-bold">Hyper</div>
-          <div class="text-purplebrand-200">Premium session, maximum gains</div>
+          <div class="text-xl font-bold">Deluxe</div>
+          <div class="text-purplebrand-200">Deluxe session, maximum gains</div>
         </div>
         <div class="text-3xl font-extrabold">€20</div>
         <div class="grid gap-2">
-          <button onclick="payWithStripe('hyper')" class="btn w-full px-4 py-3 rounded-xl bg-purplebrand-600 hover:bg-purplebrand-500">Pay with Stripe</button>
-          <div id="paypal-hyper"></div>
+          <button onclick="paywithboth('hyper')" class="btn w-full px-4 py-3 rounded-xl bg-purplebrand-600 hover:bg-purplebrand-500">Pay with Stripe</button>
+         <button onclick="paywithboth('hyperPP')" class="btn w-full px-4 py-3 rounded-xl bg-purplebrand-600 hover:bg-purplebrand-500">Pay with PayPal</button>
         </div>
       </div>
     </div>
