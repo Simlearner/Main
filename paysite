@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SimRacing Coaching – Book a Session</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            purplebrand: {
+              50: '#F3E8FF',
+              100: '#E9D5FF',
+              200: '#D8B4FE',
+              300: '#C084FC',
+              400: '#A855F7',
+              500: '#9333EA',
+              600: '#7E22CE',
+              700: '#6B21A8',
+              800: '#581C87',
+              900: '#3B0764'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    html, body { background:#0b0b0f; color:#f5f3ff; }
+    .glass { backdrop-filter: blur(10px); background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08);}  
+    .card { border-radius: 1.25rem; box-shadow: 0 10px 30px rgba(0,0,0,0.4);} 
+    .btn { transition: transform .05s ease, box-shadow .2s ease; }
+    .btn:active { transform: translateY(1px); }
+    .link { color:#C084FC }
+    .link:hover { text-decoration: underline; }
+    .hidden { display:none; }
+  </style>
+  <script type="module">
+    const firebaseConfig = {
+      apiKey: "YOUR_FIREBASE_API_KEY",
+      authDomain: "YOUR_FIREBASE_PROJECT_ID.firebaseapp.com",
+      projectId: "YOUR_FIREBASE_PROJECT_ID",
+      appId: "YOUR_FIREBASE_APP_ID",
+      storageBucket: "YOUR_FIREBASE_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+    };
+
+    const ADMIN_EMAIL = "simlearner@t-online.de";
+
+    const STRIPE_LINKS = {
+      basic: "https://buy.stripe.com/8x23cx89i6Cv73t1JscZa00",
+      advanced: "https://buy.stripe.com/aFacN7dtC1ib3Rh1JscZa01",
+      hyper: "https://buy.stripe.com/9B69AVcpye4XfzZfAicZa02"
+    };
+
+    const PAYPAL_CLIENT_ID = "AQ1Cd5h8qRadgs3Z0WdwekLdgASBKHXdK0-5d4FTa01cujugWGNeUckNr3eOjnSLXsXuE441qwF7BNQw";
+
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js';
+    import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js';
+    import { getFirestore, collection, addDoc, serverTimestamp, query, where, getDocs, orderBy, onSnapshot, doc, updateDoc } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const $ = (sel) => document.querySelector(sel);
+    const show = (el) => el.classList.remove('hidden');
+    const hide = (el) => el.classList.add('hidden');
+
+    const authSection = $('#authSection');
+    const userSection = $('#userSection');
+    const adminSection = $('#adminSection');
+    const bookingList = $('#bookingList');
+    const adminList = $('#adminList');
+    const statusBar = $('#statusBar');
+
+    function toast(msg, type='info') {
+      statusBar.textContent = msg;
+      statusBar.className = `mt-4 text-sm ${type==='error' ? 'text-red-300' : 'text-purplebrand-200'}`;
+    }
+
+    $('#signupForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = e.target.email.value.trim();
+      const password = e.target.password.value;
+      try {
+        await createUserWithEmailAndPassword(auth, email, password);
+        toast('Account created. You are now signed in.');
+      } catch (err) {
+        toast(err.message, 'error');
+      }
+    });
+
+    $('#loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = e.target.email.value.trim();
+      const password = e.target.password.value;
+      try {
+        await signInWithEmailAndPassword(auth, email, password);
+        toast('Logged in.');
+      } catch (err) {
+        toast(err.message, 'error');
+      }
+    });
+
+    $('#logoutBtn').addEventListener('click', async () => {
+      await signOut(auth);
+      toast('Logged out.');
+    });
+
+    async function recordBooking({ packageId, packageName, priceEUR, method, status, providerOrderId=null }) {
+      const user = auth.currentUser;
+      if (!user) { toast('Please log in first.', 'error'); return null; }
+      try {
+        const ref = await addDoc(collection(db, 'bookings'), {
+          uid: user.uid,
+          userEmail: user.email || null,
+          packageId,
+          packageName,
+          priceEUR,
+          method,
+          status,
+          providerOrderId,
+          createdAt: serverTimestamp()
+        });
+        return ref.id;
+      } catch (err) {
+        console.error(err);
+        toast('Could not save booking. Check your network and Firebase rules.', 'error');
+        return null;
+      }
+    }
+
+    function packageMeta(id) {
+      if (id==='basic') return { name:'Starter – 45 min', price:10 };
+      if (id==='advanced') return { name:'Advanced', price:15 };
+      if (id==='hyper') return { name:'Hyper', price:20 };
+      return { name:id, price:0 };
+    }
+
+    async function payWithStripe(packageId) {
+      const meta = packageMeta(packageId);
+      const link = STRIPE_LINKS[packageId];
+      if (!link) { toast('Stripe link not configured for this package.', 'error'); return; }
+      const bookingId = await recordBooking({packageId, packageName: meta.name, priceEUR: meta.price, method:'stripe', status:'initiated'});
+      if (!bookingId) return;
+      const url = new URL(link);
+      url.searchParams.set('client_ref_id', bookingId);
+      window.location.href = url.toString();
+    }
+
+    function mountPayPalButtons() {
+      ['basic','advanced','hyper'].forEach(pkg => {
+        const container = document.getElementById(`paypal-${pkg}`);
+        if (!container) return;
+        container.innerHTML = '';
+        paypal.Buttons({
+          style: { layout: 'horizontal', tagline: false, height: 40 },
+          createOrder: (data, actions) => {
+            const meta = packageMeta(pkg);
+            return actions.order.create({
+              purchase_units: [{ amount: { currency_code: 'EUR', value: meta.price.toString() }, description: `SimRacing Coaching – ${meta.name}` }]
+            });
+          },
+          onApprove: async (data, actions) => {
+            const details = await actions.order.capture();
+            const txId = details?.id || null;
+            const meta = packageMeta(pkg);
+            await recordBooking({ packageId: pkg, packageName: meta.name, priceEUR: meta.price, method:'paypal', status:'paid', providerOrderId: txId });
+            toast('Payment successful via PayPal. Booking saved.');
+            loadMyBookings();
+          },
+          onCancel: () => toast('PayPal payment cancelled.'),
+          onError: (err) => { console.error(err); toast('PayPal error. Check console.', 'error'); }
+        }).render(container);
+      });
+    }
+
+    async function loadMyBookings() {
+      const user = auth.currentUser; if (!user) return;
+      bookingList.innerHTML = '<div class="text-sm text-purplebrand-200">Loading…</div>';
+      const q = query(collection(db, 'bookings'), where('uid','==', user.uid), orderBy('createdAt','desc'));
+      const snapshot = await getDocs(q);
+      const items = [];
+      snapshot.forEach(docSnap => {
+        const b = docSnap.data();
+        items.push(`<div class="p-3 rounded-xl glass flex justify-between items-center"> 
+          <div>
+            <div class="font-semibold text-white">${b.packageName} <span class="text-purplebrand-300">(${b.method})</span></div>
+            <div class="text-sm text-purplebrand-200">€${b.priceEUR} • ${b.status}${b.providerOrderId ? ` • #${b.providerOrderId}`:''}</div>
+          </div>
+          <div class="text-xs text-purplebrand-300">${b.createdAt?.toDate ? b.createdAt.toDate().toLocaleString() : ''}</div>
+        </div>`);
+      });
+      bookingList.innerHTML = items.join('') || '<div class="text-sm text-purplebrand-200">No bookings yet.</div>';
+    }
+
+    async function loadAllBookingsLive() {
+      adminList.innerHTML = '<div class="text-sm text-purplebrand-200">Loading…</div>';
+      const q = query(collection(db, 'bookings'), orderBy('createdAt','desc'));
+      onSnapshot(q, snapshot => {
+        const items = [];
+        snapshot.forEach(docSnap => {
+          const b = docSnap.data(), id = docSnap.id;
+          items.push(`<div class="p-3 rounded-xl glass grid grid-cols-1 md:grid-cols-5 gap-2 items-center">
+            <div class="font-semibold">${b.userEmail || b.uid}</div>
+            <div>${b.packageName}</div>
+            <div>€${b.priceEUR} • ${b.method}</div>
+            <div class="text-sm ${b.status==='paid'?'text-green-300':'text-yellow-300'}">${b.status}${b.providerOrderId ? ` • #${b.providerOrderId}`:''}</div>
+            <div class="flex gap-2">
+              <button class="btn px-3 py-1 rounded-lg bg-purplebrand-600 hover:bg-purplebrand-500" data-mark-paid="${id}">Mark paid</button>
+              <button class="btn px-3 py-1 rounded-lg bg-neutral-800 hover:bg-neutral-700" data-mark-cancel="${id}">Cancel</button>
+            </div>
+          </div>`);
+        });
+        adminList.innerHTML = items.join('') || '<div class="text-sm text-purplebrand-200">No bookings found.</div>';
+        adminList.querySelectorAll('[data-mark-paid]').forEach(btn => btn.addEventListener('click', async e => {
+          const id = e.currentTarget.dataset.markPaid;
+          await updateDoc(doc(db,'bookings',id), { status: 'paid' });
+        }));
+        adminList.querySelectorAll('[data-mark-cancel]').forEach(btn => btn.addEventListener('click', async e => {
+          const id = e.currentTarget.dataset.markCancel;
+          await updateDoc(doc(db,'bookings',id), { status: 'canceled' });
+        }));
+      });
+    }
+
+    onAuthStateChanged(auth, user => {
+      if (user) {
+        hide(authSection); show(userSection);
+        $('#userEmail').textContent = user.email || 'Account';
+        loadMyBookings();
+        if (window.paypalReady) mountPayPalButtons();
+        if ((user.email || '').toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+          show(adminSection); loadAllBookingsLive();
+        } else hide(adminSection);
+      } else { show(authSection); hide(userSection); hide(adminSection); }
+    });
+
+    window.payWithStripe = payWithStripe;
+    window.scrollToPricing = () => document.getElementById('pricing').scrollIntoView({ behavior:'smooth' });
+  </script>
+</head>
+<body class="min-h-screen">
+  <!-- Header -->
+  <header class="max-w-5xl mx-auto px-6 py-8 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 rounded-2xl bg-purplebrand-700"></div>
+      <div class="text-xl font-bold">SimRacing Coaching</div>
+    </div>
+    <nav class="flex items-center gap-4 text-sm">
+      <button onclick="scrollToPricing()" class="btn px-4 py-2 rounded-xl glass hover:bg-purplebrand-900">Pricing</button>
+      <button id="logoutBtn" class="btn px-4 py-2 rounded-xl bg-purplebrand-600 hover:bg-purplebrand-500">Logout</button>
+    </nav>
+  </header>
+
+  <!-- Hero -->
+  <section class="max-w-5xl mx-auto px-6 py-10 grid md:grid-cols-2 gap-8 items-center">
+    <div>
+      <h1 class="text-4xl md:text-5xl font-extrabold leading-tight">Unlock Pace. <span class="text-purplebrand-400">Book coaching</span> that actually moves your lap times.</h1>
+      <p class="mt-4 text-purplebrand-200">Dark, clean, and fast—just like your ideal lap. Choose a package, pay with Stripe or PayPal, and track bookings in your account.</p>
+      <div class="
