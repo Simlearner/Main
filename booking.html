@@ -60,10 +60,14 @@
 
     // 3) Stripe Payment Links – create in Stripe Dashboard (no server needed)
     //    Each link should handle EUR prices matching the packages below.
-    const STRIPE_LINKS = {
-      basic: "https://buy.stripe.com/8x23cx89i6Cv73t1JscZa00",      // 10€ for 45 minutes
+    const PAY_LINKS = {
+      basic: "https://www.paypal.com/ncp/payment/9Z75YESRJC9T2",      // 10€ for 45 minutes
       advanced: "https://buy.stripe.com/aFacN7dtC1ib3Rh1JscZa01",// 15€
-      hyper: "https://buy.stripe.com/9B69AVcpye4XfzZfAicZa02"       // 20€ (you wrote Hyer; assumed Hyper)
+      hyper: "https://buy.stripe.com/9B69AVcpye4XfzZfAicZa02",       // 20€ (you wrote Hyer; assumed Hyper)
+      basicPP: "https://buy.stripe.com/8x23cx89i6Cv73t1JscZa00",      // 10€ for 45 minutes PAYPAL
+      advancedPP: "https://www.paypal.com/ncp/payment/X6KWYVFQQ2ST6",// 15€ PAYPAL  
+      hyperPP: "https://www.paypal.com/ncp/payment/CR4KT3PVRBLPN"       // 20€ PAYPAL
+
     };
 
     // 4) PayPal Client ID – create an app at https://developer.paypal.com/dashboard/applications
@@ -154,13 +158,16 @@
       if (id==='basic') return { name:'Starter – 45 min', price:10 };
       if (id==='advanced') return { name:'Advanced', price:15 };
       if (id==='hyper') return { name:'Hyper', price:20 };
+      if (id==='basicPP') return { name:'BasicPP', price:10 };
+      if (id==='advancedPP') return { name:'AdvancedPP', price:15 };
+      if (id==='hyperPP') return { name:'HyperPP', price:20 };
       return { name:id, price:0 };
     }
 
     // Stripe (via Payment Links)
     async function payWithStripe(packageId) {
       const meta = packageMeta(packageId);
-      const link = STRIPE_LINKS[packageId];
+      const link = PAY_LINKS[packageId];
       if (!link) { toast('Stripe link not configured for this package.', 'error'); return; }
       const bookingId = await recordBooking({packageId, packageName: meta.name, priceEUR: meta.price, method:'stripe', status:'initiated'});
       if (!bookingId) return;
