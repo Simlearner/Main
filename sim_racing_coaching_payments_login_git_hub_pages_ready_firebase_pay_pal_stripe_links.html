@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SimRacing Coaching – Book a Session</title>
+  <!-- Tailwind (Play CDN) for quick styling on GitHub Pages -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            purplebrand: {
+              50: '#F3E8FF',
+              100: '#E9D5FF',
+              200: '#D8B4FE',
+              300: '#C084FC',
+              400: '#A855F7',
+              500: '#9333EA',
+              600: '#7E22CE',
+              700: '#6B21A8',
+              800: '#581C87',
+              900: '#3B0764'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    html, body { background:#0b0b0f; color:#f5f3ff; }
+    .glass { backdrop-filter: blur(10px); background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08);}  
+    .card { border-radius: 1.25rem; box-shadow: 0 10px 30px rgba(0,0,0,0.4);} 
+    .btn { transition: transform .05s ease, box-shadow .2s ease; }
+    .btn:active { transform: translateY(1px); }
+    .link { color:#C084FC }
+    .link:hover { text-decoration: underline; }
+    .hidden { display:none; }
+  </style>
+  <!-- Firebase v10+ Modular SDKs -->
+  <script type="module">
+    // ========= CONFIGURE THESE BEFORE DEPLOY =========
+    // 1) Firebase project (Auth + Firestore) – create at https://console.firebase.google.com
+    const firebaseConfig = {
+      apiKey: "YOUR_FIREBASE_API_KEY",
+      authDomain: "YOUR_FIREBASE_PROJECT_ID.firebaseapp.com",
+      projectId: "YOUR_FIREBASE_PROJECT_ID",
+      appId: "YOUR_FIREBASE_APP_ID",
+      storageBucket: "YOUR_FIREBASE_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+    };
+
+    // 2) Admin email for the master dashboard
+    const ADMIN_EMAIL = "you@example.com"; // change to your email used to log in
+
+    // 3) Stripe Payment Links – create in Stripe Dashboard (no server needed)
+    //    Each link should handle EUR prices matching the packages below.
+    const STRIPE_LINKS = {
+      basic: "https://buy.stripe.com/your_basic_payment_link",      // 10€ for 45 minutes
+      advanced: "https://buy.stripe.com/your_advanced_payment_link",// 15€
+      hyper: "https://buy.stripe.com/your_hyper_payment_link"       // 20€ (you wrote Hyer; assumed Hyper)
+    };
+
+    // 4) PayPal Client ID – create an app at https://developer.paypal.com/dashboard/applications
+    const PAYPAL_CLIENT_ID = "YOUR_PAYPAL_CLIENT_ID"; // also set in <script src> later
+
+    // ========= DO NOT EDIT BELOW UNLESS NEEDED =========
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js';
+    import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js';
+    import { getFirestore, collection, addDoc, serverTimestamp, query, where, getDocs, orderBy, onSnapshot, doc, updateDoc } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    // UI helpers
+    const $ = (sel) => document.querySelector(sel);
+    const show = (el) => el.classList.remove('hidden');
+    const hide = (el) => el.classList.add('hidden');
+
+    // Elements
+    const authSection = $('#authSection');
+    const userSection = $('#userSection');
+    const adminSection = $('#adminSection');
+    const bookingList = $('#bookingList');
+    const adminList = $('#adminList');
+    const statusBar = $('#statusBar');
+
+    function toast(msg, type='info') {
+      statusBar.textContent = msg;
+      statusBar.className = `mt-4 text-sm ${type==='error' ? 'text-red-300' : 'text-purplebrand-200'}`;
+    }
+
+    // Auth handlers
+    $('#signupForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = e.target.email.value.trim();
+      const password = e.target.password.value;
+      try {
+        await createUserWithEmailAndPassword(auth, email, password);
+        toast('Account created. You are now signed in.');
+      } catch (err) {
+        toast(err.message, 'error');
+      }
+    });
+
+    $('#loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = e.target.email.value.trim();
+      const password = e.target.password.value;
+      try {
+        await signInWithEmailAndPassword(auth, email, password);
+        toast('Logged in.');
+      } catch (err) {
+        toast(err.message, 'error');
+      }
+    });
+
+    $('#logoutBtn').addEventListener('click', async () => {
+      await signOut(auth);
+      toast('Logged out.');
+    });
+
+    // Booking actions
+    async function recordBooking({ packageId, packageName, priceEUR, method, status, providerOrderId=null }) {
+      const user = auth.currentUser;
+      if (!user) { toast('Please log in first.', 'error'); return null; }
+      try {
+        const ref = await addDoc(collection(db, 'bookings'), {
+          uid: user.uid,
+          userEmail: user.email || null,
+          packageId,
+          packageName,
+          priceEUR,
+          method, // 'stripe' | 'paypal'
+          status, // 'initiated' | 'paid' | 'failed' | 'canceled'
+          providerOrderId,
+          createdAt: serverTimestamp()
+        });
+        return ref.id;
+      } catch (err) {
+        console.error(err);
+        toast('Could not save booking. Check your network and Firebase rules.', 'error');
+        return null;
+      }
+    }
+
+    function packageMeta(id) {
+      if (id==='basic') return { name:'Starter – 45 min', price:10 };
+      if (id==='advanced') return { name:'Advanced', price:15 };
+      if (id==='hyper') return { name:'Hyper', price:20 };
+      return { name:id, price:0 };
+    }
+
+    // Stripe (via Payment Links)
+    async function payWithStripe(packageId) {
+      const meta = packageMeta(packageId);
+      const link = STRIPE_LINKS[packageId];
+      if (!link) { toast('Stripe link not configured for this package.', 'error'); return; }
+      const bookingId = await recordBooking({packageId, packageName: meta.name, priceEUR: meta.price, method:'stripe', status:'initiated'});
+      if (!bookingId) return;
+      // Attach bookingId to URL so you can reconcile on return (NOT a verification!)
+      const url = new URL(link);
+      url.searchParams.set('client_ref_id', bookingId);
+      window.location.href = url.toString();
+    }
+
+    // PAYPAL smart buttons get mounted after auth state is known
+    function mountPayPalButtons() {
+      const packages = ['basic','advanced','hyper'];
+      packages.forEach(pkg => {
+        const containerId = `#paypal-${pkg}`;
+        const container = document.querySelector(containerId);
+        if (!container) return;
+        container.innerHTML = '';
+        // eslint-disable-next-line no-undef
+        paypal.Buttons({
+          style: { layout: 'horizontal', tagline: false, height: 40 },
+          createOrder: (data, actions) => {
+            const meta = packageMeta(pkg);
+            return actions.order.create({
+              purchase_units: [{ amount: { currency_code: 'EUR', value: meta.price.toString() }, description: `SimRacing Coaching – ${meta.name}` }]
+            });
+          },
+          onApprove: async (data, actions) => {
+            const details = await actions.order.capture();
+            const txId = details?.id || null;
+            const meta = packageMeta(pkg);
+            await recordBooking({ packageId: pkg, packageName: meta.name, priceEUR: meta.price, method:'paypal', status:'paid', providerOrderId: txId });
+            toast('Payment successful via PayPal. Booking saved.');
+            loadMyBookings();
+          },
+          onCancel: () => toast('PayPal payment cancelled.'),
+          onError: (err) => { console.error(err); toast('PayPal error. Check console.', 'error'); }
+        }).render(container);
+      });
+    }
+
+    // Load bookings for the current user
+    async function loadMyBookings() {
+      const user = auth.currentUser; if (!user) return;
+      bookingList.innerHTML = '<div class="text-sm text-purplebrand-200">Loading…</div>';
+      const q = query(collection(db, 'bookings'), where('uid','==', user.uid), orderBy('createdAt','desc'));
+      const snapshot = await getDocs(q);
+      renderBookings(snapshot, bookingList);
+    }
+
+    function renderBookings(snapshot, container) {
+      const items = [];
+      snapshot.forEach(docSnap => {
+        const b = docSnap.data();
+        items.push(`<div class="p-3 rounded-xl glass flex justify-between items-center"> 
+          <div>
+            <div class="font-semibold text-white">${b.packageName} <span class="text-purplebrand-300">(${b.method})</span></div>
+            <div class="text-sm text-purplebrand-200">€${b.priceEUR} • ${b.status}${b.providerOrderId ? ` • #${b.providerOrderId}`:''}</div>
+          </div>
+          <div class="text-xs text-purplebrand-300">${b.createdAt?.toDate ? b.createdAt.toDate().toLocaleString() : ''}</div>
+        </div>`);
+      });
+      container.innerHTML = items.join('\n') || '<div class="text-sm text-purplebrand-200">No bookings yet.</div>';
+    }
+
+    // Admin dashboard (client-side gated by email; secure via Firestore Rules too)
+    async function loadAllBookingsLive() {
+      adminList.innerHTML = '<div class="text-sm text-purplebrand-200">Loading…</div>';
+      const q = query(collection(db, 'bookings'), orderBy('createdAt','desc'));
+      onSnapshot(q, (snapshot) => {
+        const items = [];
+        snapshot.forEach(docSnap => {
+          const b = docSnap.data();
+          const id = docSnap.id;
+          items.push(`<div class="p-3 rounded-xl glass grid grid-cols-1 md:grid-cols-5 gap-2 items-center">
+            <div class="font-semibold">${b.userEmail || b.uid}</div>
+            <div>${b.packageName}</div>
+            <div>€${b.priceEUR} • ${b.method}</div>
+            <div class="text-sm ${b.status==='paid'?'text-green-300':'text-yellow-300'}">${b.status}${b.providerOrderId ? ` • #${b.providerOrderId}`:''}</div>
+            <div class="flex gap-2">
+              <button class="btn px-3 py-1 rounded-lg bg-purplebrand-600 hover:bg-purplebrand-500" data-mark-paid="${id}">Mark paid</button>
+              <button class="btn px-3 py-1 rounded-lg bg-neutral-800 hover:bg-neutral-700" data-mark-cancel="${id}">Cancel</button>
+            </div>
+          </div>`);
+        });
+        adminList.innerHTML = items.join('\n') || '<div class="text-sm text-purplebrand-200">No bookings found.</div>';
+        // attach handlers
+        adminList.querySelectorAll('[data-mark-paid]').forEach(btn => btn.addEventListener('click', async (e) => {
+          const id = e.currentTarget.getAttribute('data-mark-paid');
+          await updateDoc(doc(db,'bookings',id), { status: 'paid' });
+        }));
+        adminList.querySelectorAll('[data-mark-cancel]').forEach(btn => btn.addEventListener('click', async (e) => {
+          const id = e.currentTarget.getAttribute('data-mark-cancel');
+          await updateDoc(doc(db,'bookings',id), { status: 'canceled' });
+        }));
+      });
+    }
+
+    // React to auth changes
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        hide(authSection);
+        show(userSection);
+        $('#userEmail').textContent = user.email || 'Account';
+        loadMyBookings();
+        // mount PayPal only after we know auth state and global paypal is loaded
+        if (window.paypalReady) mountPayPalButtons();
+        // Admin view
+        if ((user.email || '').toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+          show(adminSection);
+          loadAllBookingsLive();
+        } else {
+          hide(adminSection);
+        }
+      } else {
+        show(authSection);
+        hide(userSection);
+        hide(adminSection);
+      }
+    });
+
+    // Expose for Stripe buttons
+    window.payWithStripe = payWithStripe;
+
+    // Utility: smooth scroll to pricing
+    window.scrollToPricing = () => document.getElementById('pricing').scrollIntoView({ behavior:'smooth'});
+  </script>
+</head>
+<body class="min-h-screen">
+  <!-- Header -->
+  <header class="max-w-5xl mx-auto px-6 py-8 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 rounded-2xl bg-purplebrand-700"></div>
+      <div class="text-xl font-bold">SimRacing Coaching</div>
+    </div>
+    <nav class="flex items-center gap-4 text-sm">
+      <button onclick="scrollToPricing()" class="btn px-4 py-2 rounded-xl glass hover:bg-purplebrand-900">Pricing</button>
+      <button id="logoutBtn" class="btn px-4 py-2 rounded-xl bg-purplebrand-600 hover:bg-purplebrand-500">Logout</button>
+    </nav>
+  </header>
+
+  <!-- Hero -->
+  <section class="max-w-5xl mx-auto px-6 py-10 grid md:grid-cols-2 gap-8 items-center">
+    <div>
+      <h1 class="text-4xl md:text-5xl font-extrabold leading-tight">Unlock Pace. <span class="text-purplebrand-400">Book coaching</span> that actually moves your lap times.</h1>
+      <p class="mt-4 text-purplebrand-200">Dark, clean, and fast—just like your ideal lap. Choose a package, pay with Stripe or PayPal, and track bookings in your account.</p>
+      <div class="mt-6 flex gap-3">
+        <button onclick="scrollToPricing()" class="btn px-5 py-3 rounded-2xl bg-purplebrand-600 hover:bg-purplebrand-500">See Packages</button>
+        <a href="#authSection" class="btn px-5 py-3 rounded-2xl glass hover:bg-purplebrand-900">Login / Sign up</a>
+      </div>
+      <div id="statusBar" class="mt-4 text-sm text-purplebrand-200"></div>
+    </div>
+    <div class="glass card p-6">
+      <img alt="simracing" src="https://images.unsplash.com/photo-1542362567-b07e54358753?q=80&w=1200&auto=format&fit=crop" class="rounded-xl"/>
+    </div>
+  </section>
+
+  <!-- Auth Section -->
+  <section id="authSection" class="max-w-5xl mx-auto px-6 py-10 grid md:grid-cols-2 gap-8">
+    <div class="glass card p-6">
+      <h2 class="text-2xl font-bold mb-2">Create account</h2>
+      <p class="text-sm text-purplebrand-200 mb-4">Sign up to book and view your sessions.</p>
+      <form id="signupForm" class="grid gap-3">
+        <input name="email" type="email" required placeholder="Email" class="px-4 py-3 rounded-xl bg-black/40 border border-white/10" />
+        <input name="password" type="password" minlength="6" required placeholder="Password" class="px-4 py-3 rounded-xl bg-black/40 border border-white/10" />
+        <button class="btn px-4 py-3 rounded-xl bg-purplebrand-600 hover:bg-purplebrand-500">Create account</button>
+      </form>
+    </div>
+
+    <div class="glass card p-6">
+      <h2 class="text-2xl font-bold mb-2">Log in</h2>
+      <p class="text-sm text-purplebrand-200 mb-4">Use your email & password.</p>
+      <form id="loginForm" class="grid gap-3">
+        <input name="email" type="email" required placeholder="Email" class="px-4 py-3 rounded-xl bg-black/40 border border-white/10" />
+        <input name="password" type="password" required placeholder="Password" class="px-4 py-3 rounded-xl bg-black/40 border border-white/10" />
+        <button class="btn px-4 py-3 rounded-xl bg-purplebrand-600 hover:bg-purplebrand-500">Log in</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- User Section -->
+  <section id="userSection" class="max-w-5xl mx-auto px-6 py-10 hidden">
+    <div class="mb-6">
+      <div class="text-sm text-purplebrand-200">Signed in as</div>
+      <div id="userEmail" class="text-lg font-semibold">—</div>
+    </div>
+
+    <h2 id="pricing" class="text-3xl font-bold mb-4">Packages</h2>
+    <div class="grid md:grid-cols-3 gap-6">
+      <!-- Basic -->
+      <div class="glass card p-6 flex flex-col gap-4">
+        <div>
+          <div class="text-xl font-bold">Starter – 45 minutes</div>
+          <div class="text-purplebrand-200">Perfect intro or quick tune-up</div>
+        </div>
+        <div class="text-3xl font-extrabold">€10</div>
+        <div class="grid gap-2">
+          <button onclick="payWithStripe('basic')" class="btn w-full px-4 py-3 rounded-xl bg-purplebrand-600 hover:bg-purplebrand-500">Pay with Stripe</button>
+          <div id="paypal-basic"></div>
+        </div>
+      </div>
+      <!-- Advanced -->
+      <div class="glass card p-6 flex flex-col gap-4">
+        <div>
+          <div class="text-xl font-bold">Advanced</div>
+          <div class="text-purplebrand-200">More time to dive into data</div>
+        </div>
+        <div class="text-3xl font-extrabold">€15</div>
+        <div class="grid gap-2">
+          <button onclick="payWithStripe('advanced')" class="btn w-full px-4 py-3 rounded-xl bg-purplebrand-600 hover:bg-purplebrand-500">Pay with Stripe</button>
+          <div id="paypal-advanced"></div>
+        </div>
+      </div>
+      <!-- Hyper -->
+      <div class="glass card p-6 flex flex-col gap-4">
+        <div>
+          <div class="text-xl font-bold">Hyper</div>
+          <div class="text-purplebrand-200">Premium session, maximum gains</div>
+        </div>
+        <div class="text-3xl font-extrabold">€20</div>
+        <div class="grid gap-2">
+          <button onclick="payWithStripe('hyper')" class="btn w-full px-4 py-3 rounded-xl bg-purplebrand-600 hover:bg-purplebrand-500">Pay with Stripe</button>
+          <div id="paypal-hyper"></div>
+        </div>
+      </div>
+    </div>
+
+    <h3 class="text-2xl font-bold mt-10 mb-3">Your bookings</h3>
+    <div id="bookingList" class="grid gap-3"></div>
+  </section>
+
+  <!-- Admin Section -->
+  <section id="adminSection" class="max-w-6xl mx-auto px-6 py-12 hidden">
+    <div class="mb-6 flex items-end justify-between">
+      <div>
+        <h2 class="text-3xl font-bold">Admin – All Bookings</h2>
+        <p class="text-purplebrand-200 text-sm">Visible only when logged in as the configured admin email.</p>
+      </div>
+    </div>
+    <div id="adminList" class="grid gap-3"></div>
+  </section>
+
+  <footer class="max-w-5xl mx-auto px-6 py-12 text-sm text-purplebrand-300">
+    <div class="glass card p-6">
+      <h4 class="font-semibold mb-2">Notes & Setup</h4>
+      <ul class="list-disc pl-5 space-y-2">
+        <li><strong>GitHub Pages compatible:</strong> this is a single HTML file using Firebase (Auth + Firestore), PayPal Buttons, and Stripe <em>Payment Links</em> (no server needed).</li>
+        <li><strong>Stripe:</strong> create three Payment Links in your Stripe Dashboard for €10, €15, and €20. Paste the URLs into <code>STRIPE_LINKS</code> near the top of this file.</li>
+        <li><strong>PayPal:</strong> replace <code>YOUR_PAYPAL_CLIENT_ID</code> in both the constant above and the PayPal script tag below. The buttons will capture the payment and mark the booking as <code>paid</code> in Firestore.</li>
+        <li><strong>Login & storage:</strong> accounts and bookings are stored in Firebase, not GitHub. Never store passwords in GitHub. Create a Firebase project, enable <em>Email/Password</em> in Authentication, and create a Cloud Firestore database in <em>Production</em> mode.</li>
+        <li><strong>Admin:</strong> set your admin email in <code>ADMIN_EMAIL</code>. For security, also add Firestore Rules shown below.</li>
+        <li><strong>Verification:</strong> Stripe Payment Links do not notify this page automatically when paid. For guaranteed confirmation, add a webhook + server later. PayPal captures are confirmed on the client and are saved as <code>paid</code>.</li>
+      </ul>
+      <details class="mt-4">
+        <summary class="cursor-pointer">Firestore Security Rules (paste in Firebase Console & adjust admin email)</summary>
+<pre class="text-xs bg-black/40 p-4 rounded-xl overflow-auto">rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /bookings/{doc} {
+      allow read, write: if false; // deny by default
+      allow create: if request.auth != null &&
+        request.resource.data.uid == request.auth.uid &&
+        request.resource.data.priceEUR in [10,15,20] &&
+        request.resource.data.method in ['paypal','stripe'];
+      allow read: if request.auth != null && (
+        // owner can read their bookings
+        resource.data.uid == request.auth.uid ||
+        // admin by email
+        request.auth.token.email.lower() == '${"you@example.com"}'.lower()
+      );
+      allow update: if request.auth != null && (
+        // user can update only their booking to cancel
+        (request.auth.uid == resource.data.uid && request.resource.data.status in ['canceled']) ||
+        // admin can edit status
+        request.auth.token.email.lower() == '${"you@example.com"}'.lower()
+      );
+    }
+  }
+}
+</pre>
+      </details>
+    </div>
+  </footer>
+
+  <!-- PayPal SDK (after content, for faster first paint) -->
+  <script>
+    // Inject PayPal script dynamically so we can set the client-id from the constant
+    (function injectPayPal(){
+      const s = document.createElement('script');
+      s.src = `https://www.paypal.com/sdk/js?client-id=${encodeURIComponent(PAYPAL_CLIENT_ID)}&currency=EUR&intent=capture`; 
+      s.onload = function(){ window.paypalReady = true; if (firebase && firebase.app) { /* no-op */ } mountPayPalButtons(); };
+      s.onerror = function(){ console.error('PayPal SDK failed to load'); };
+      document.body.appendChild(s);
+    })();
+  </script>
+</body>
+</html>
