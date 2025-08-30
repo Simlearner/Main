@@ -426,13 +426,13 @@ service cloud.firestore {
         // owner can read their bookings
         resource.data.uid == request.auth.uid ||
         // admin by email
-        request.auth.token.email.lower() == '${"you@example.com"}'.lower()
+        request.auth.token.email.lower() == '${"simlearner@t-online.de"}'.lower()
       );
       allow update: if request.auth != null && (
         // user can update only their booking to cancel
         (request.auth.uid == resource.data.uid && request.resource.data.status in ['canceled']) ||
         // admin can edit status
-        request.auth.token.email.lower() == '${"you@example.com"}'.lower()
+        request.auth.token.email.lower() == '${"simlearner@t-online.de"}'.lower()
       );
     }
   }
