@@ -181,12 +181,19 @@
 
 
     // Load bookings for the current user
-    async function loadMyBookings() {
-      const user = auth.currentUser; if (!user) return;
+    function loadMyBookings() {
+    const user = auth.currentUser;
+    if (!user) return;
       bookingList.innerHTML = '<div class="text-sm text-purplebrand-200">Loading…</div>';
-      const q = query(collection(db, 'bookings'), where('uid','==', user.uid), orderBy('createdAt','desc'));
-      const snapshot = await getDocs(q);
+      const q = query(
+      collection(db, 'bookings'),
+      where('uid', '==', user.uid),
+      orderBy('createdAt', 'desc')
+                      );
+      // real-time updates instead of one-time fetch
+      onSnapshot(q, (snapshot) => {
       renderBookings(snapshot, bookingList);
+      });
     }
 
     function renderBookings(snapshot, container) {
