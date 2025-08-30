@@ -56,18 +56,18 @@
   };
 
     // 2) Admin email for the master dashboard
-    const ADMIN_EMAIL = "simlearner@t-online.de"; // change to your email used to log in
+    const ADMIN_EMAIL = ["simlearner@t-online.de", 
+       "adamsch0f1eld024@gmail.com"]; // change to your email used to log in
 
     // 3) Stripe Payment Links – create in Stripe Dashboard (no server needed)
     //    Each link should handle EUR prices matching the packages below.
     const PAY_LINKS = {
-      basic: "https://www.paypal.com/ncp/payment/9Z75YESRJC9T2",      // 10€ for 45 minutes
-      advanced: "https://buy.stripe.com/aFacN7dtC1ib3Rh1JscZa01",// 15€
+      basic: "https://buy.stripe.com/8x23cx89i6Cv73t1JscZa00",      // 10€ for 45 minutes 
+      advanced: "https://buy.stripe.com/aFacN7dtC1ib3Rh1JscZa01",   // 15€
       hyper: "https://buy.stripe.com/9B69AVcpye4XfzZfAicZa02",       // 20€ (you wrote Hyer; assumed Hyper)
-      basicPP: "https://buy.stripe.com/8x23cx89i6Cv73t1JscZa00",      // 10€ for 45 minutes PAYPAL
-      advancedPP: "https://www.paypal.com/ncp/payment/X6KWYVFQQ2ST6",// 15€ PAYPAL  
+      basicPP: "https://www.paypal.com/ncp/payment/9Z75YESRJC9T2",      // 10€ for 45 minutes PAYPAL
+      advancedPP: "https://www.paypal.com/ncp/payment/X6KWYVFQQ2ST6",   // 15€ PAYPAL  
       hyperPP: "https://www.paypal.com/ncp/payment/CR4KT3PVRBLPN"       // 20€ PAYPAL
-
     };
 
     // 4) PayPal Client ID – create an app at https://developer.paypal.com/dashboard/applications
