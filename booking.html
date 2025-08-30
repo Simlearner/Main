@@ -247,7 +247,8 @@
         // mount PayPal only after we know auth state and global paypal is loaded
         if (window.paypalReady) mountPayPalButtons();
         // Admin view
-        if ((user.email || '').toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+       // if ((user.email || '').toLowerCase() === ADMIN_EMAIL.toLowerCase()) 
+        if (ADMIN_EMAILS.some(e => e.toLowerCase() === (user.email || '').toLowerCase())) {
           show(adminSection);
           loadAllBookingsLive();
         } else {
