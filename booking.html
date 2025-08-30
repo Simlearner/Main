@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>SimRacing Coaching – Book a Session</title>
+  <title>Simlearner Book Coaching</title>
   <!-- Tailwind (Play CDN) for quick styling on GitHub Pages -->
   
   
@@ -13,74 +13,83 @@
   
 
 
-<!-- Header & Navigation -->
 <header class="py-6 px-4 md:px-8 lg:px-16 fixed w-full z-50 bg-gray-900 bg-opacity-80 backdrop-blur-sm transition-all duration-300 flex flex-col">
-    <!-- Top Navigation Row -->
-    <nav class="flex justify-between items-center max-w-7xl mx-auto w-full mb-1">
-        <!-- Logo linking to index page -->
-        <a href="index.html" class="flex-shrink-0">
-            <img src="https://simlearner.carrd.co/assets/images/image01.jpg?v=e85c37cb" alt="SimLearner Logo" class="h-20 rounded-lg shadow-lg transition-all duration-300">
-        </a>
+  <!-- Top Navigation Row -->
+  <nav class="flex justify-between items-center max-w-7xl mx-auto w-full mb-1">
+    <!-- Logo linking to index page -->
+    <a href="index.html" class="flex-shrink-0">
+      <img src="https://simlearner.carrd.co/assets/images/image01.jpg?v=e85c37cb" alt="SimLearner Logo" class="h-20 rounded-lg shadow-lg transition-all duration-300">
+    </a>
 
-        <!-- Desktop Menu -->
-        <div class="hidden md:flex space-x-8">
-            <a href="#about" class="text-gray-300 hover:text-white transition-colors duration-300">About</a>
-            <a href="#focus" class="text-gray-300 hover:text-white transition-colors duration-300">Our Focus</a>
-            <a href="#how-it-works" class="text-gray-300 hover:text-white transition-colors duration-300">How it Works</a>
-            <a href="#contact" class="text-gray-300 hover:text-white transition-colors duration-300">Book Session</a>
-        </div>
-
-        <!-- Mobile Menu Button -->
-        <button id="mobile-menu-button" class="md:hidden text-gray-300 hover:text-white">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path>
-            </svg>
-        </button>
-    </nav>
-
-    <!-- Mobile Menu -->
-    <div id="mobile-menu" class="hidden md:hidden mt-4 text-center">
-        <a href="#about" class="block py-2 text-gray-300 hover:text-white">About</a>
-        <a href="#focus" class="block py-2 text-gray-300 hover:text-white">Our Focus</a>
-        <a href="#how-it-works" class="block py-2 text-gray-300 hover:text-white">How it Works</a>
-        <a href="#contact" class="block py-2 text-gray-300 hover:text-white">Book Session</a>
+    <!-- Desktop Menu -->
+    <div class="hidden md:flex items-center space-x-8">
+      <a href="#about" class="text-gray-300 hover:text-white transition-colors duration-300">About</a>
+      <a href="#focus" class="text-gray-300 hover:text-white transition-colors duration-300">Our Focus</a>
+      <a href="#how-it-works" class="text-gray-300 hover:text-white transition-colors duration-300">How it Works</a>
+      <a href="#contact" class="text-gray-300 hover:text-white transition-colors duration-300">Book Session</a>
+      <button id="logoutBtn" class="btn px-4 py-2 rounded-xl bg-purplebrand-600 hover:bg-purplebrand-500">Logout</button>
     </div>
 
-    <!-- Optional Second Row -->
-    <div class="max-w-7xl mx-auto w-full text-right pr-4 md:pr-16 lg:pr-16">
-        <a href="general-advice.html" class="inline-block text-gray-400 hover:text-white text-sm transition-colors duration-300">
-            General Setup Advice
-        </a>
-    </div>
+    <!-- Mobile Menu Button -->
+    <button id="mobile-menu-button" class="md:hidden text-gray-300 hover:text-white">
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path>
+      </svg>
+    </button>
+  </nav>
+
+  <!-- Mobile Menu -->
+  <div id="mobile-menu" class="hidden md:hidden mt-4 text-center space-y-2">
+    <a href="#about" class="block py-2 text-gray-300 hover:text-white">About</a>
+    <a href="#focus" class="block py-2 text-gray-300 hover:text-white">Our Focus</a>
+    <a href="#how-it-works" class="block py-2 text-gray-300 hover:text-white">How it Works</a>
+    <a href="#contact" class="block py-2 text-gray-300 hover:text-white">Book Session</a>
+    <button id="logoutBtnMobile" class="block w-full py-2 bg-purplebrand-600 text-white rounded-xl hover:bg-purplebrand-500">Logout</button>
+  </div>
+
+  <!-- Optional Second Row -->
+  <div class="max-w-7xl mx-auto w-full text-right pr-4 md:pr-16 lg:pr-16">
+    <a href="general-advice.html" class="inline-block text-gray-400 hover:text-white text-sm transition-colors duration-300">
+      General Setup Advice
+    </a>
+  </div>
 </header>
 
-<!-- JS for mobile menu toggle and sticky/shrinking logo -->
 <script>
-    const mobileMenuButton = document.getElementById('mobile-menu-button');
-    const mobileMenu = document.getElementById('mobile-menu');
-    mobileMenuButton.addEventListener('click', () => {
-        mobileMenu.classList.toggle('hidden');
-    });
+  // Mobile menu toggle
+  const mobileMenuButton = document.getElementById('mobile-menu-button');
+  const mobileMenu = document.getElementById('mobile-menu');
+  mobileMenuButton.addEventListener('click', () => mobileMenu.classList.toggle('hidden'));
 
-    const header = document.querySelector('header');
-    const logo = header.querySelector('img');
-    const secondRow = document.querySelector('.w-full.text-right');
+  // Sticky shrinking header
+  const header = document.querySelector('header');
+  const logo = header.querySelector('img');
+  const secondRow = document.querySelector('.w-full.text-right');
 
-    window.addEventListener('scroll', () => {
-        if (window.scrollY > 50) {
-            header.classList.remove('py-6');
-            header.classList.add('py-3');
-            logo.classList.remove('h-20');
-            logo.classList.add('h-10');
-            secondRow.classList.add('hidden');
-        } else {
-            header.classList.remove('py-3');
-            header.classList.add('py-6');
-            logo.classList.remove('h-10');
-            logo.classList.add('h-20');
-            secondRow.classList.remove('hidden');
-        }
-    });
+  window.addEventListener('scroll', () => {
+    if (window.scrollY > 50) {
+      header.classList.remove('py-6');
+      header.classList.add('py-3');
+      logo.classList.remove('h-20');
+      logo.classList.add('h-10');
+      secondRow.classList.add('hidden');
+    } else {
+      header.classList.remove('py-3');
+      header.classList.add('py-6');
+      logo.classList.remove('h-10');
+      logo.classList.add('h-20');
+      secondRow.classList.remove('hidden');
+    }
+  });
+
+  // Optional: sync logout button for mobile
+  const logoutBtns = document.querySelectorAll('#logoutBtn, #logoutBtnMobile');
+  logoutBtns.forEach(btn => btn.addEventListener('click', async () => {
+    if (firebase && firebase.auth) {
+      await firebase.auth().signOut();
+      alert('Logged out!');
+    }
+  }));
 </script>
 
 
