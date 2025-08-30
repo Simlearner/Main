@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SimLearner Booking</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #0d0d0d;
+      color: #f0f0f0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      text-align: center;
+    }
+    .container {
+      background-image: url('https://images.unsplash.com/photo-1549419163-b8b05615822f?q=80&w=1255&auto=format&fit=crop');
+      background-size: cover;
+      background-position: center;
+      border-radius: 1rem;
+      padding: 2.5rem;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+                  0 4px 6px -2px rgba(0, 0, 0, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      position: relative;
+      overflow: hidden;
+      width: 100%;
+      max-width: 700px;
+    }
+    .overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(13, 13, 13, 0.85);
+      backdrop-filter: blur(2px);
+      z-index: 1;
+    }
+    .content {
+      position: relative;
+      z-index: 2;
+    }
+    .countdown-title {
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+  </style>
+</head>
+<body class="antialiased">
+
+  <div class="container mx-auto">
+    <div class="overlay"></div>
+    <div class="content">
+      <!-- Logo -->
+      <img src="https://simlearner.carrd.co/assets/images/image01.jpg?v=e85c37cb"
+           alt="SimLearner Logo"
+           class="h-16 mx-auto mb-6 rounded-lg">
+
+      <!-- Title -->
+      <h1 class="text-5xl md:text-6xl font-bold text-white mb-4 countdown-title">
+        SimRacing Coaching
+      </h1>
+      <p class="text-xl md:text-2xl text-gray-300 mb-6 font-semibold">
+        Choose your package and payment method
+      </p>
+
+      <!-- Payment method selector -->
+      <div class="flex justify-center items-center space-x-6 mb-8">
+        <label class="flex items-center space-x-2 cursor-pointer">
+          <input type="radio" name="paymentMethod" value="stripe" checked class="form-radio text-purple-600">
+          <span class="text-white">Stripe</span>
+        </label>
+        <label class="flex items-center space-x-2 cursor-pointer">
+          <input type="radio" name="paymentMethod" value="paypal" class="form-radio text-purple-600">
+          <span class="text-white">PayPal</span>
+        </label>
+      </div>
+
+      <!-- Packages -->
+      <div id="packages" class="grid gap-6">
+        <div class="p-6 bg-black bg-opacity-40 rounded-xl shadow">
+          <h2 class="text-2xl font-bold mb-2">Basic Package</h2>
+          <p class="mb-4">45 minutes coaching – 10€</p>
+          <button class="book-btn px-6 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition">
+            Book with Stripe
+          </button>
+        </div>
+        <div class="p-6 bg-black bg-opacity-40 rounded-xl shadow">
+          <h2 class="text-2xl font-bold mb-2">Advanced Package</h2>
+          <p class="mb-4">Advanced coaching – 15€</p>
+          <button class="book-btn px-6 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition">
+            Book with Stripe
+          </button>
+        </div>
+        <div class="p-6 bg-black bg-opacity-40 rounded-xl shadow">
+          <h2 class="text-2xl font-bold mb-2">Hyper Package</h2>
+          <p class="mb-4">Elite coaching – 20€</p>
+          <button class="book-btn px-6 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition">
+            Book with Stripe
+          </button>
+        </div>
+      </div>
+
+      <!-- Return -->
+      <a href="index.html"
+         class="mt-10 inline-block px-6 py-2 border-2 border-violet-500 hover:border-violet-600 text-violet-500 hover:text-violet-600 font-bold rounded-full transition-all duration-300 transform hover:scale-105">
+        Return to the Paddock
+      </a>
+    </div>
+  </div>
+
+  <!-- Payment toggle logic -->
+  <script>
+    // Replace with your actual links
+    const packageLinks = {
+      stripe: {
+        basic: "https://buy.stripe.com/YOUR-BASIC-LINK",
+        advanced: "https://buy.stripe.com/YOUR-ADVANCED-LINK",
+        hyper: "https://buy.stripe.com/YOUR-HYPER-LINK"
+      },
+      paypal: {
+        basic: "https://paypal.me/YOURPAYPAL/10",
+        advanced: "https://paypal.me/YOURPAYPAL/15",
+        hyper: "https://paypal.me/YOURPAYPAL/20"
+      }
+    };
+
+    let selectedMethod = "stripe";
+
+    document.querySelectorAll("input[name='paymentMethod']").forEach(input => {
+      input.addEventListener("change", e => {
+        selectedMethod = e.target.value;
+        updateButtons();
+      });
+    });
+
+    function updateButtons() {
+      document.querySelectorAll(".book-btn").forEach((btn, index) => {
+        let packageKey = ["basic", "advanced", "hyper"][index];
+        btn.textContent = "Book with " + (selectedMethod.charAt(0).toUpperCase() + selectedMethod.slice(1));
+        btn.onclick = () => window.location.href = packageLinks[selectedMethod][packageKey];
+      });
+    }
+
+    // Initialize
+    updateButtons();
+  </script>
+</body>
+</html>
