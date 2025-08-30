@@ -400,46 +400,27 @@
   </section>
 
   <footer class="max-w-5xl mx-auto px-6 py-12 text-sm text-purplebrand-300">
-    <div class="glass card p-6">
-      <h4 class="font-semibold mb-2">Notes & Setup</h4>
-      <ul class="list-disc pl-5 space-y-2">
-        <li><strong>GitHub Pages compatible:</strong> this is a single HTML file using Firebase (Auth + Firestore), PayPal Buttons, and Stripe <em>Payment Links</em> (no server needed).</li>
-        <li><strong>Stripe:</strong> create three Payment Links in your Stripe Dashboard for €10, €15, and €20. Paste the URLs into <code>STRIPE_LINKS</code> near the top of this file.</li>
-        <li><strong>PayPal:</strong> replace <code>YOUR_PAYPAL_CLIENT_ID</code> in both the constant above and the PayPal script tag below. The buttons will capture the payment and mark the booking as <code>paid</code> in Firestore.</li>
-        <li><strong>Login & storage:</strong> accounts and bookings are stored in Firebase, not GitHub. Never store passwords in GitHub. Create a Firebase project, enable <em>Email/Password</em> in Authentication, and create a Cloud Firestore database in <em>Production</em> mode.</li>
-        <li><strong>Admin:</strong> set your admin email in <code>ADMIN_EMAIL</code>. For security, also add Firestore Rules shown below.</li>
-        <li><strong>Verification:</strong> Stripe Payment Links do not notify this page automatically when paid. For guaranteed confirmation, add a webhook + server later. PayPal captures are confirmed on the client and are saved as <code>paid</code>.</li>
-      </ul>
-      <details class="mt-4">
-        <summary class="cursor-pointer">Firestore Security Rules (paste in Firebase Console & adjust admin email)</summary>
-<pre class="text-xs bg-black/40 p-4 rounded-xl overflow-auto">rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /bookings/{doc} {
-      allow read, write: if false; // deny by default
-      allow create: if request.auth != null &&
-        request.resource.data.uid == request.auth.uid &&
-        request.resource.data.priceEUR in [10,15,20] &&
-        request.resource.data.method in ['paypal','stripe'];
-      allow read: if request.auth != null && (
-        // owner can read their bookings
-        resource.data.uid == request.auth.uid ||
-        // admin by email
-        request.auth.token.email.lower() == '${"simlearner@t-online.de"}'.lower()
-      );
-      allow update: if request.auth != null && (
-        // user can update only their booking to cancel
-        (request.auth.uid == resource.data.uid && request.resource.data.status in ['canceled']) ||
-        // admin can edit status
-        request.auth.token.email.lower() == '${"simlearner@t-online.de"}'.lower()
-      );
-    }
-  }
-}
-</pre>
-      </details>
-    </div>
-  </footer>
+  <div class="glass card p-6">
+    <h4 class="font-semibold mb-2">Impressum</h4>
+    <p class="text-purplebrand-200 mb-2">
+      Simlearner<br>
+      Maximilian Luca Hummel<br>
+      Rämplestrasse 6<br>
+      85652 Pliening, Germany
+    </p>
+    <p class="text-purplebrand-200 mb-2">
+      Email: <a href="mailto:simlearner@t-online.de" class="link">simlearner@t-online.de</a><br>
+      Telefon: +49 151 67214780
+    </p>
+    <p class="text-purplebrand-200 mb-2">
+      Umsatzsteuer-ID: DEXXXXXXXX (in progress)
+    </p>
+    <p class="text-purplebrand-200">
+      Verantwortlich für den Inhalt nach § 55 Abs. 2 RStV:<br>
+      Simlearner
+    </p>
+  </div>
+</footer>
 
   <!-- PayPal SDK (after content, for faster first paint) -->
   <script>
