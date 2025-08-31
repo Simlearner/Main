@@ -66,11 +66,11 @@
                 </form>
             </div>
 
-            <!-- Download List -->
+            <!-- Download List (Now a placeholder) -->
             <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700">
                 <h2 class="text-xl font-semibold text-violet-400 mb-4">Available Setups</h2>
                 <div id="setups-list" class="space-y-4">
-                    <p class="text-gray-500 text-center">Loading setups...</p>
+                    <p class="text-gray-500 text-center">Setups are currently not available for download. They will be manually added to the database by Simlearner after submission.</p>
                 </div>
             </div>
         </div>
@@ -100,48 +100,19 @@
         </div>
     </footer>
 
-    <!-- Supabase SDK -->
     <script type="module">
-        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
-
-        const SUPABASE_URL = 'https://pxeiohfelsbwgchjgxpu.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB4ZWlvaGZlbHNid2djaGpneHB1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY2NzY2MDAsImV4cCI6MjA3MjI1MjYwMH0.SqWMWJ-WDSMaXT02fpa1K3M-IxoTqT-AKtrJ3HA3u68';
-        
-        const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
         const uploadForm = document.getElementById('upload-form');
-        const setupsList = document.getElementById('setups-list');
         const uploadStatus = document.getElementById('upload-status');
         const userIdDisplay = document.getElementById('user-id-display');
 
-        let userId = null;
-
-        // Supabase does not have an onAuthStateChanged equivalent for anonymous login
-        // like Firebase. We'll simulate a user ID for demonstration purposes.
-        const authenticateUser = async () => {
-            try {
-                const { data: { user }, error } = await supabase.auth.signInAnonymously();
-                if (error) throw error;
-                userId = user.id;
-                userIdDisplay.textContent = `Your User ID: ${userId}`;
-                fetchAndDisplaySetups();
-            } catch (error) {
-                console.error("Error signing in anonymously:", error);
-                userIdDisplay.textContent = 'Error: Could not authenticate user.';
-            }
-        };
-
-        authenticateUser();
+        // We'll generate a UUID for the user ID to simplify things without a database
+        const userId = crypto.randomUUID();
+        userIdDisplay.textContent = `Your User ID: ${userId}`;
 
         // Function to handle the upload
         uploadForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            if (!userId) {
-                uploadStatus.textContent = 'Authentication in progress. Please wait...';
-                return;
-            }
-
             const carName = document.getElementById('car-name').value;
             const trackName = document.getElementById('track-name').value;
             const fileInput = document.getElementById('setup-file');
@@ -159,86 +130,35 @@
                 reader.onload = async (event) => {
                     const fileContent = event.target.result;
                     
-                    const { data, error } = await supabase
-                        .from('setups')
-                        .insert([
-                            {
-                                car_name: carName,
-                                track_name: trackName,
-                                file_name: file.name,
-                                file_content: fileContent,
-                                uploaded_by: userId
-                            }
-                        ]);
-
-                    if (error) throw error;
+                    const subject = `New Setup Submission: ${carName} - ${trackName}`;
+                    const body = `
+                        Car Name: ${carName}
+                        Track Name: ${trackName}
+                        File Name: ${file.name}
+                        User ID: ${userId}
+                        
+                        --- File Content ---
+                        ${fileContent}
+                    `;
                     
-                    uploadStatus.textContent = 'Setup uploaded successfully!';
+                    const mailtoUrl = `mailto:simlearner@t-online.de?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                    
+                    // We'll create a temporary link and click it to trigger the email client
+                    const tempLink = document.createElement('a');
+                    tempLink.href = mailtoUrl;
+                    tempLink.click();
+
+                    uploadStatus.textContent = 'Setup sent successfully! Please check your email client.';
                     uploadForm.reset();
                 };
                 reader.readAsText(file);
 
             } catch (error) {
-                console.error("Error uploading document:", error);
-                uploadStatus.textContent = 'Error uploading setup. Please try again.';
+                console.error("Error sending email:", error);
+                uploadStatus.textContent = 'An error occurred. Please try again or contact Simlearner directly.';
             }
         });
 
-        // Function to fetch and display setups in real-time
-        async function fetchAndDisplaySetups() {
-            try {
-                // Fetch setups, ordered by car name
-                const { data: setups, error } = await supabase
-                    .from('setups')
-                    .select('*')
-                    .order('car_name', { ascending: true });
-
-                if (error) throw error;
-                
-                setupsList.innerHTML = '';
-                if (setups.length === 0) {
-                    setupsList.innerHTML = '<p class="text-gray-500 text-center">No setups have been uploaded yet.</p>';
-                }
-
-                setups.forEach((setup) => {
-                    const item = document.createElement('div');
-                    item.className = 'flex flex-col sm:flex-row justify-between items-center bg-gray-700 p-4 rounded-lg shadow-md border border-gray-600';
-                    item.innerHTML = `
-                        <div>
-                            <p class="text-white font-bold">${setup.car_name} - ${setup.track_name}</p>
-                            <p class="text-gray-400 text-sm">Uploaded by: ${setup.uploaded_by.substring(0, 8)}... (${setup.file_name})</p>
-                        </div>
-                        <button class="download-button mt-4 sm:mt-0 px-4 py-2 bg-violet-500 hover:bg-violet-600 rounded-lg text-white font-bold transition-colors duration-300" data-content='${JSON.stringify(setup.file_content)}' data-filename="${setup.file_name}">
-                            Download
-                        </button>
-                    `;
-                    setupsList.appendChild(item);
-                });
-            } catch (error) {
-                console.error("Error fetching setups:", error);
-                setupsList.innerHTML = '<p class="text-red-400 text-center">Error loading setups. Please ensure your Supabase configuration and database table are correct.</p>';
-            }
-        }
-        
-        // Function to handle the download
-        setupsList.addEventListener('click', (e) => {
-            if (e.target.classList.contains('download-button')) {
-                const button = e.target;
-                const fileContent = JSON.parse(button.dataset.content);
-                const fileName = button.dataset.filename;
-
-                const blob = new Blob([fileContent], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = fileName;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-            }
-        });
     </script>
 
 </body>
