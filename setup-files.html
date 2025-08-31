@@ -25,6 +25,26 @@
         ::-webkit-scrollbar-thumb:hover {
             background: #5a5a5a;
         }
+        .setup-card {
+            background-color: #1a1a1a;
+            border-radius: 0.75rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border: 1px solid #2d2d2d;
+        }
+        .download-button {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            background-color: #3b82f6;
+            color: white;
+            border-radius: 0.5rem;
+            text-align: center;
+            text-decoration: none;
+            transition: background-color 0.3s;
+        }
+        .download-button:hover {
+            background-color: #2563eb;
+        }
     </style>
 </head>
 <body class="antialiased">
@@ -43,7 +63,6 @@
     <section class="py-20 px-4 md:px-8 lg:px-16 pt-32 bg-gray-900">
         <div class="max-w-4xl mx-auto p-8 rounded-xl bg-gray-900 bg-opacity-80">
             <h1 class="text-3xl md:text-4xl font-bold text-center text-white mb-8">Community Setup Files</h1>
-            <p id="user-id-display" class="text-xs text-gray-500 text-center mb-4">Your User ID: </p>
             
             <!-- Upload Form -->
             <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700 mb-8">
@@ -51,37 +70,28 @@
                 <form id="upload-form" class="space-y-4">
                     <div>
                         <label for="car-name" class="block text-gray-400 mb-1">Car Name</label>
-                        <input type="text" id="car-name" name="car-name" class="w-full p-2 rounded-lg bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-violet-500" placeholder="e.g., Porsche 911 GT3 R">
+                        <input type="text" id="car-name" name="car-name" class="w-full p-2 rounded-lg bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-violet-500" placeholder="e.g., Porsche 911 GT3 R" required>
                     </div>
                     <div>
                         <label for="track-name" class="block text-gray-400 mb-1">Track Name</label>
-                        <input type="text" id="track-name" name="track-name" class="w-full p-2 rounded-lg bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-violet-500" placeholder="e.g., Monza">
+                        <input type="text" id="track-name" name="track-name" class="w-full p-2 rounded-lg bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-violet-500" placeholder="e.g., Monza" required>
                     </div>
                     <div>
                         <label for="setup-file" class="block text-gray-400 mb-1">Select .json Setup File</label>
-                        <input type="file" id="setup-file" name="setup-file" accept=".json" class="w-full text-gray-400">
+                        <input type="file" id="setup-file" name="setup-file" accept=".json" class="w-full text-gray-400" required>
                     </div>
-                    <button type="submit" class="w-full px-4 py-2 bg-violet-500 hover:bg-violet-600 rounded-lg text-white font-bold transition-colors duration-300">Show Setup Content</button>
+                    <button type="submit" id="submit-button" class="w-full px-4 py-2 bg-violet-500 hover:bg-violet-600 rounded-lg text-white font-bold transition-colors duration-300">Upload Setup</button>
                     <p id="upload-status" class="text-center text-sm mt-2"></p>
                 </form>
             </div>
-
-            <!-- New Section to display and copy content -->
-            <div id="setup-content-container" class="hidden bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700 mb-8">
-                <h2 class="text-xl font-semibold text-violet-400 mb-4">Setup Content to Send</h2>
-                <div class="flex items-center space-x-2 mb-4">
-                    <p class="text-gray-400 text-sm">Please copy the content below and send it to <a href="mailto:simlearner@t-online.de" class="text-violet-400">simlearner@t-online.de</a>.</p>
-                    <button id="copy-button" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-white font-bold transition-colors duration-300">Copy</button>
-                </div>
-                <textarea id="setup-content" class="w-full h-64 p-4 rounded-lg bg-gray-900 text-gray-300 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-violet-500" readonly></textarea>
-            </div>
-
-            <!-- Download List (Now a placeholder) -->
+            
+            <!-- List for dynamically loaded setups -->
             <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700">
                 <h2 class="text-xl font-semibold text-violet-400 mb-4">Available Setups</h2>
                 <div id="setups-list" class="space-y-4">
-                    <p class="text-gray-500 text-center">Setups are currently not available for download. They will be manually added to the database by Simlearner after submission.</p>
+                    <!-- Setups will be dynamically loaded here -->
                 </div>
+                <p id="loading-status" class="text-center text-gray-500">Loading setups...</p>
             </div>
         </div>
     </section>
@@ -113,16 +123,64 @@
     <script type="module">
         const uploadForm = document.getElementById('upload-form');
         const uploadStatus = document.getElementById('upload-status');
-        const userIdDisplay = document.getElementById('user-id-display');
-        const setupContentContainer = document.getElementById('setup-content-container');
-        const setupContentTextarea = document.getElementById('setup-content');
-        const copyButton = document.getElementById('copy-button');
+        const setupsList = document.getElementById('setups-list');
+        const loadingStatus = document.getElementById('loading-status');
+        const submitButton = document.getElementById('submit-button');
 
-        // We'll generate a UUID for the user ID
-        const userId = crypto.randomUUID();
-        userIdDisplay.textContent = `Your User ID: ${userId}`;
+        // You must replace this with the Web App URL from your deployed Google Apps Script
+        const GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwb0bEy06gwiauXZXcrGtY0ovKQAcnQKMGz1Q1WW8U4KMqoz2aElgzvxduimSIDGQuXoQ/exec';
+        const GOOGLE_SHEET_URL = 'https://docs.google.com/spreadsheets/d/1d3gbxnn92OXDIa5R6paDF699H0x6Qgr7hJOTD8Qb6HM/gviz/tq?tqx=out:json';
 
-        // Function to handle the form submission
+        // Function to fetch and display the setups from the Google Sheet
+        async function fetchAndDisplaySetups() {
+            loadingStatus.textContent = 'Loading setups...';
+            setupsList.innerHTML = ''; // Clear previous setups
+
+            try {
+                const response = await fetch(GOOGLE_SHEET_URL);
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                const data = await response.text();
+
+                // The data from Google Sheets is not a standard JSON object, so we need to parse it
+                const jsonText = data.substring(data.indexOf('{'), data.lastIndexOf('}') + 1);
+                const json = JSON.parse(jsonText);
+                const rows = json.table.rows;
+
+                if (rows.length > 1) { // The first row is the header
+                    loadingStatus.textContent = ''; // Clear loading message
+                    // Iterate through each row (setup) and create a card
+                    rows.slice(1).forEach(row => {
+                        const columns = row.c;
+                        const carName = columns[0]?.v || 'N/A';
+                        const trackName = columns[1]?.v || 'N/A';
+                        const fileName = columns[2]?.v || 'N/A';
+                        const fileContent = columns[3]?.v || '';
+
+                        const setupCard = document.createElement('div');
+                        setupCard.className = 'setup-card';
+                        setupCard.innerHTML = `
+                            <h3 class="text-xl font-bold text-violet-300">${carName}</h3>
+                            <p class="text-gray-400 mb-2">Track: ${trackName}</p>
+                            <p class="text-gray-500 text-sm mb-4">File: ${fileName}</p>
+                            <div class="flex space-x-2">
+                                <a href="data:application/json;charset=utf-8,${encodeURIComponent(fileContent)}" download="${fileName}" class="download-button">Download</a>
+                            </div>
+                        `;
+                        setupsList.appendChild(setupCard);
+                    });
+                } else {
+                    loadingStatus.textContent = 'No setups have been uploaded yet.';
+                }
+
+            } catch (error) {
+                console.error("Error fetching setups:", error);
+                loadingStatus.textContent = 'Error loading setups. Please ensure your Google Sheet URL and public sharing settings are correct.';
+            }
+        }
+
+        // --- Event Listener to upload setup to Google Sheet via the Apps Script ---
         uploadForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             
@@ -136,36 +194,54 @@
                 return;
             }
 
-            try {
-                uploadStatus.textContent = 'Processing file...';
-
-                const reader = new FileReader();
-                reader.onload = async (event) => {
-                    const fileContent = event.target.result;
-                    
-                    const formattedContent = `Car Name: ${carName}\nTrack Name: ${trackName}\nFile Name: ${file.name}\nUser ID: ${userId}\n\n--- File Content ---\n${fileContent}`;
-                    
-                    setupContentTextarea.value = formattedContent;
-                    setupContentContainer.classList.remove('hidden');
-                    uploadStatus.textContent = 'Content is ready to be copied!';
-                };
-                reader.readAsText(file);
-
-            } catch (error) {
-                console.error("Error processing file:", error);
-                uploadStatus.textContent = 'An error occurred. Please try again.';
+            if (GOOGLE_APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_URL_HERE') {
+                uploadStatus.textContent = 'Error: Please update the code with your Google Apps Script URL.';
+                return;
             }
+
+            submitButton.disabled = true;
+            uploadStatus.textContent = 'Uploading setup...';
+
+            const reader = new FileReader();
+            reader.onload = async (event) => {
+                const fileContent = event.target.result;
+                const uploadData = {
+                    carName: carName,
+                    trackName: trackName,
+                    fileName: file.name,
+                    fileContent: fileContent
+                };
+
+                try {
+                    const response = await fetch(GOOGLE_APPS_SCRIPT_URL, {
+                        method: 'POST',
+                        body: JSON.stringify(uploadData),
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                    });
+
+                    if (response.ok) {
+                        const result = await response.json();
+                        uploadStatus.textContent = result.message;
+                    } else {
+                        throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+                    }
+                    uploadForm.reset(); // Clear the form
+                    fetchAndDisplaySetups(); // Refresh the list of setups
+
+                } catch (error) {
+                    console.error("Error uploading setup:", error);
+                    uploadStatus.textContent = 'An error occurred during upload. Please try again.';
+                } finally {
+                    submitButton.disabled = false;
+                }
+            };
+            reader.readAsText(file);
         });
 
-        // Function to copy the content to the clipboard
-        copyButton.addEventListener('click', () => {
-            setupContentTextarea.select();
-            document.execCommand('copy');
-            copyButton.textContent = 'Copied!';
-            setTimeout(() => {
-                copyButton.textContent = 'Copy';
-            }, 2000);
-        });
+        // Initial fetch of setups
+        fetchAndDisplaySetups();
 
     </script>
 
