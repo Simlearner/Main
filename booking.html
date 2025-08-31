@@ -267,6 +267,66 @@ onAuthStateChanged(auth, (user) => {
   }
 });
 
+
+
+    //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+// 👉 Manuelles Reload-Addon für User Dashboard
+async function reloadUserBookings(user) {
+  if (!user) return;
+
+  bookingList.innerHTML = '<div class="text-sm text-purplebrand-200">Loading…</div>';
+
+  const q = query(
+    collection(db, 'bookings'),
+    where('uid', '==', user.uid),
+    orderBy('createdAt', 'desc')
+  );
+
+  const snapshot = await getDocs(q);
+
+  const items = [];
+  snapshot.forEach(docSnap => {
+    const b = docSnap.data();
+    items.push(`
+      <div class="p-3 rounded-xl glass flex justify-between items-center"> 
+        <div>
+          <div class="font-semibold text-white">${b.packageName} <span class="text-purplebrand-300">(${b.method})</span></div>
+          <div class="text-sm text-purplebrand-200">€${b.priceEUR} • ${b.status}${b.providerOrderId ? ` • #${b.providerOrderId}`:''}</div>
+        </div>
+        <div class="text-xs text-purplebrand-300">${b.createdAt?.toDate ? b.createdAt.toDate().toLocaleString() : ''}</div>
+      </div>
+    `);
+  });
+
+  bookingList.innerHTML = items.join('\n') || '<div class="text-sm text-purplebrand-200">No bookings yet.</div>';
+}
+
+// 👉 Button dynamisch einfügen, sobald ein User eingeloggt ist
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    // Falls Button noch nicht existiert: einfügen
+    if (!document.getElementById('refreshUserBookings')) {
+      const refreshBtn = document.createElement('button');
+      refreshBtn.id = 'refreshUserBookings';
+      refreshBtn.className = 'mb-3 px-4 py-2 rounded-xl bg-purplebrand-600 hover:bg-purplebrand-500 text-white font-semibold shadow-md';
+      refreshBtn.textContent = 'Aktualisieren';
+
+      // Button vor der Liste einfügen
+      bookingList.parentNode.insertBefore(refreshBtn, bookingList);
+
+      // Klick -> manuelles Nachladen
+      refreshBtn.addEventListener('click', () => reloadUserBookings(user));
+    }
+  }
+});
+
+    //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+    
+
     // Expose for Stripe buttons
     window.paywithboth = paywithboth;
 
