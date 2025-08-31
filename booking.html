@@ -193,7 +193,7 @@
     orderBy('createdAt', 'desc')
   );
 
-  // Real-time listener
+  // Real-time listener (like admin)
   onSnapshot(q, (snapshot) => {
     renderBookings(snapshot, bookingList);
   });
