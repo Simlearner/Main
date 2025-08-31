@@ -253,6 +253,20 @@ onAuthStateChanged(auth, (user) => {
     // ✅ User-Dashboard laden
     loadUserBookingsLive(user);
 
+// ✅ Refresh-Button nur einmal einfügen
+if (bookingList && !document.getElementById('refreshUserBookings')) {
+  const refreshBtn = document.createElement('button');
+  refreshBtn.id = 'refreshUserBookings';
+  refreshBtn.className = 'mb-3 px-4 py-2 rounded-xl bg-purplebrand-600 hover:bg-purplebrand-500 text-white font-semibold shadow-md';
+  refreshBtn.textContent = 'Aktualisieren';
+
+  // Knopf VOR die Liste setzen
+  bookingList.parentNode.insertBefore(refreshBtn, bookingList);
+
+  // Klick = Reload
+  refreshBtn.addEventListener('click', () => reloadUserBookings(user));
+}
+
     // Admin check
     if (ADMIN_EMAIL.some(e => e.toLowerCase() === (user.email || '').toLowerCase())) {
       show(adminSection);
@@ -301,25 +315,6 @@ async function reloadUserBookings(user) {
 
   bookingList.innerHTML = items.join('\n') || '<div class="text-sm text-purplebrand-200">No bookings yet.</div>';
 }
-
-// 👉 Button dynamisch einfügen, sobald ein User eingeloggt ist
-onAuthStateChanged(auth, (user) => {
-  if (user) {
-    // Falls Button noch nicht existiert: einfügen
-    if (!document.getElementById('refreshUserBookings')) {
-      const refreshBtn = document.createElement('button');
-      refreshBtn.id = 'refreshUserBookings';
-      refreshBtn.className = 'mb-3 px-4 py-2 rounded-xl bg-purplebrand-600 hover:bg-purplebrand-500 text-white font-semibold shadow-md';
-      refreshBtn.textContent = 'Aktualisieren';
-
-      // Button vor der Liste einfügen
-      bookingList.parentNode.insertBefore(refreshBtn, bookingList);
-
-      // Klick -> manuelles Nachladen
-      refreshBtn.addEventListener('click', () => reloadUserBookings(user));
-    }
-  }
-});
 
     //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
