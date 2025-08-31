@@ -179,10 +179,12 @@
     }
 
     // PAYPAL smart buttons get mounted after auth state is known
-
+//--------------------------------------------------------------------------------------------------------------------------------------------------------------
 let unsubscribeUserBookings = null;
+
 // User dashboard (live, nur eigene Buchungen)
-function loadUserBookingsLive(user) {
+function loadUserBookingsLive() {
+  const user = auth.currentUser;
   if (!user) return;
 
   bookingList.innerHTML = '<div class="text-sm text-purplebrand-200">Loading…</div>';
@@ -193,7 +195,7 @@ function loadUserBookingsLive(user) {
     orderBy('createdAt', 'desc')
   );
 
-  // Falls bereits ein Listener läuft -> abmelden
+  // Falls schon ein Listener läuft -> abmelden
   if (unsubscribeUserBookings) unsubscribeUserBookings();
 
   unsubscribeUserBookings = onSnapshot(q, (snapshot) => {
@@ -213,53 +215,6 @@ function loadUserBookingsLive(user) {
     bookingList.innerHTML = items.join('\n') || '<div class="text-sm text-purplebrand-200">No bookings yet.</div>';
   });
 }
-
-// Reload-Funktion nutzt einfach den Live-Listener erneut
-function reloadUserBookings(user) {
-  loadUserBookingsLive(user);
-}
-
-// React to auth changes
-onAuthStateChanged(auth, (user) => {
-  if (user) {
-    hide(authSection);
-    show(userSection);
-    $('#userEmail').textContent = user.email || 'Account';
-
-    // ✅ User-Dashboard laden
-    loadUserBookingsLive(user);
-
-    // ✅ Refresh-Button nur einmal einfügen
-    if (bookingList && !document.getElementById('refreshUserBookings')) {
-      const refreshBtn = document.createElement('button');
-      refreshBtn.id = 'refreshUserBookings';
-      refreshBtn.className = 'mb-3 px-4 py-2 rounded-xl bg-purplebrand-600 hover:bg-purplebrand-500 text-white font-semibold shadow-md';
-      refreshBtn.textContent = 'Aktualisieren';
-
-      // Knopf VOR die Liste setzen
-      bookingList.parentNode.insertBefore(refreshBtn, bookingList);
-
-      // Klick = Live-Reload
-      refreshBtn.addEventListener('click', () => {
-  const currentUser = auth.currentUser;
-  if (currentUser) reloadUserBookings(currentUser);
-});
-    }
-
-    // Admin check (bleibt unverändert)
-    if (ADMIN_EMAIL.some(e => e.toLowerCase() === (user.email || '').toLowerCase())) {
-      show(adminSection);
-      loadAllBookingsLive();
-    } else {
-      hide(adminSection);
-    }
-  } else {
-    show(authSection);
-    hide(userSection);
-    hide(adminSection);
-  }
-});
-
 
 // Admin dashboard (client-side gated by email; secure via Firestore Rules too)
 async function loadAllBookingsLive() {
@@ -294,8 +249,46 @@ async function loadAllBookingsLive() {
   });
 }
 
+// React to auth changes
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    hide(authSection);
+    show(userSection);
+    $('#userEmail').textContent = user.email || 'Account';
 
-    //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    // User-Dashboard laden
+    loadUserBookingsLive();
+
+    // Refresh-Button nur einmalig
+    if (bookingList && !document.getElementById('refreshUserBookings')) {
+      const refreshBtn = document.createElement('button');
+      refreshBtn.id = 'refreshUserBookings';
+      refreshBtn.className = 'mb-3 px-4 py-2 rounded-xl bg-purplebrand-600 hover:bg-purplebrand-500 text-white font-semibold shadow-md';
+      refreshBtn.textContent = 'Aktualisieren';
+
+      bookingList.parentNode.insertBefore(refreshBtn, bookingList);
+
+      // Klick = Live-Reload
+      refreshBtn.addEventListener('click', () => loadUserBookingsLive());
+    }
+
+    // Admin check
+    if (ADMIN_EMAIL.some(e => e.toLowerCase() === (user.email || '').toLowerCase())) {
+      show(adminSection);
+      loadAllBookingsLive();
+    } else {
+      hide(adminSection);
+    }
+  } else {
+    show(authSection);
+    hide(userSection);
+    hide(adminSection);
+  }
+});
+
+
+
+    //-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 
 
