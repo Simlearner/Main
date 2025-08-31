@@ -240,7 +240,10 @@ onAuthStateChanged(auth, (user) => {
       bookingList.parentNode.insertBefore(refreshBtn, bookingList);
 
       // Klick = Live-Reload
-      refreshBtn.addEventListener('click', () => reloadUserBookings(user));
+      refreshBtn.addEventListener('click', () => {
+  const currentUser = auth.currentUser;
+  if (currentUser) reloadUserBookings(currentUser);
+});
     }
 
     // Admin check (bleibt unverändert)
