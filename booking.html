@@ -180,18 +180,11 @@
 
     // PAYPAL smart buttons get mounted after auth state is known
 
-
-   // 🔑 Watch for auth state so queries always bind to the right user
-onAuthStateChanged(auth, (user) => {
-  if (user) {
-    loadMyBookings(user);
-  } else {
-    bookingList.innerHTML = '<div class="text-sm text-purplebrand-200">Please log in.</div>';
-  }
-});
-
 // Load bookings for the current user
-function loadMyBookings(user) {
+    function loadMyBookings() {
+  const user = auth.currentUser;
+  if (!user) return;
+
   bookingList.innerHTML = '<div class="text-sm text-purplebrand-200">Loading…</div>';
 
   const q = query(
@@ -200,27 +193,26 @@ function loadMyBookings(user) {
     orderBy('createdAt', 'desc')
   );
 
-  // Real-time listener (same logic as admin)
+ // Real-time listener (like admin)
   onSnapshot(q, (snapshot) => {
     renderBookings(snapshot, bookingList);
   });
 }
 
-// Render user bookings
-function renderBookings(snapshot, container) {
-  const items = [];
-  snapshot.forEach(docSnap => {
-    const b = docSnap.data();
-    items.push(`<div class="p-3 rounded-xl glass flex justify-between items-center"> 
-      <div>
-        <div class="font-semibold text-white">${b.packageName} <span class="text-purplebrand-300">(${b.method})</span></div>
-        <div class="text-sm text-purplebrand-200">€${b.priceEUR} • ${b.status}${b.providerOrderId ? ` • #${b.providerOrderId}`:''}</div>
-      </div>
-      <div class="text-xs text-purplebrand-300">${b.createdAt?.toDate ? b.createdAt.toDate().toLocaleString() : ''}</div>
-    </div>`);
-  });
-  container.innerHTML = items.join('\n') || '<div class="text-sm text-purplebrand-200">No bookings yet.</div>';
-}
+    function renderBookings(snapshot, container) {
+      const items = [];
+      snapshot.forEach(docSnap => {
+        const b = docSnap.data();
+        items.push(`<div class="p-3 rounded-xl glass flex justify-between items-center"> 
+          <div>
+            <div class="font-semibold text-white">${b.packageName} <span class="text-purplebrand-300">(${b.method})</span></div>
+            <div class="text-sm text-purplebrand-200">€${b.priceEUR} • ${b.status}${b.providerOrderId ? ` • #${b.providerOrderId}`:''}</div>
+          </div>
+          <div class="text-xs text-purplebrand-300">${b.createdAt?.toDate ? b.createdAt.toDate().toLocaleString() : ''}</div>
+        </div>`);
+      });
+      container.innerHTML = items.join('\n') || '<div class="text-sm text-purplebrand-200">No bookings yet.</div>';
+    }
 
     // Admin dashboard (client-side gated by email; secure via Firestore Rules too)
     async function loadAllBookingsLive() {
