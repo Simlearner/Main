@@ -455,52 +455,84 @@ onAuthStateChanged(auth, (user) => {
     </div>
   </section>
 
-  <!-- User Section -->
-  <section id="userSection" class="max-w-5xl mx-auto px-6 py-10 hidden">
-    <div class="mb-6">
-      <div class="text-sm text-purplebrand-200">Signed in as</div>
-      <div id="userEmail" class="text-lg font-semibold">—</div>
-    </div>
+<!-- User Section -->
+<section id="userSection" class="max-w-5xl mx-auto px-6 py-10 hidden">
+  <div class="mb-6">
+    <div class="text-sm text-purplebrand-200">Signed in as</div>
+    <div id="userEmail" class="text-lg font-semibold">—</div>
+  </div>
 
-    <h2 id="pricing" class="text-3xl font-bold mb-4">Packages</h2>
-    <div class="grid md:grid-cols-3 gap-6">
-      <!-- Basic -->
-      <div class="glass card p-6 flex flex-col gap-4">
-        <div>
-          <div class="text-xl font-bold">Basic</div>
-          <div class="text-purplebrand-200">Perfect intro or quick tune-up</div>
-        </div>
-        <div class="text-3xl font-extrabold">€10</div>
-        <div class="grid gap-2">
+  <h2 id="pricing" class="text-3xl font-bold mb-4">Packages</h2>
+  <div class="grid md:grid-cols-3 gap-6">
+    
+    <!-- Basic -->
+    <div class="glass card p-6 flex flex-col justify-between gap-4">
+      <div>
+        <div class="text-xl font-bold">Basic</div>
+        <div class="text-purplebrand-200 mb-2">Perfect intro or quick tune-up</div>
+        <ul class="list-disc list-inside text-sm text-gray-300 space-y-1">
+          <li>15-minute free trial session</li>
+          <li>40-minute private coaching session via Discord</li>
+          <li>Basic setup assistance during the session</li>
+        </ul>
+      </div>
+      <div>
+        <div class="text-3xl font-extrabold mt-4">€10</div>
+        <div class="grid gap-2 mt-2">
           <button onclick="paywithboth('basic')" class="btn w-full px-4 py-3 rounded-xl bg-purplebrand-600 hover:bg-purplebrand-500">Pay with Stripe</button>
           <button onclick="paywithboth('basicPP')" class="btn w-full px-4 py-3 rounded-xl bg-purplebrand-600 hover:bg-purplebrand-500">Pay with PayPal</button>
         </div>
       </div>
-      <!-- Advanced -->
-      <div class="glass card p-6 flex flex-col gap-4">
-        <div>
-          <div class="text-xl font-bold">Premium</div>
-          <div class="text-purplebrand-200">More time to dive into data</div>
-        </div>
-        <div class="text-3xl font-extrabold">€15</div>
-        <div class="grid gap-2">
+    </div>
+    
+    <!-- Premium -->
+    <div class="glass card p-6 flex flex-col justify-between gap-4">
+      <div>
+        <div class="text-xl font-bold">Premium</div>
+        <div class="text-purplebrand-200 mb-2">More time to dive into data</div>
+        <ul class="list-disc list-inside text-sm text-gray-300 space-y-1">
+          <li>15-minute free trial session</li>
+          <li>50-minute private coaching session via Discord</li>
+          <li>Full car setup assistance</li>
+          <li>Access to future setups provided by us</li>
+          <li>€3 discount on your next coaching package</li>
+        </ul>
+      </div>
+      <div>
+        <div class="text-3xl font-extrabold mt-4">€15</div>
+        <div class="grid gap-2 mt-2">
           <button onclick="paywithboth('advanced')" class="btn w-full px-4 py-3 rounded-xl bg-purplebrand-600 hover:bg-purplebrand-500">Pay with Stripe</button>
           <button onclick="paywithboth('advancedPP')" class="btn w-full px-4 py-3 rounded-xl bg-purplebrand-600 hover:bg-purplebrand-500">Pay with Paypal</button>
         </div>
       </div>
-      <!-- Hyper -->
-      <div class="glass card p-6 flex flex-col gap-4">
-        <div>
-          <div class="text-xl font-bold">Deluxe</div>
-          <div class="text-purplebrand-200">Deluxe session, maximum gains</div>
-        </div>
-        <div class="text-3xl font-extrabold">€20</div>
-        <div class="grid gap-2">
+    </div>
+    
+    <!-- Deluxe -->
+    <div class="glass card p-6 flex flex-col justify-between gap-4">
+      <div>
+        <div class="text-xl font-bold">Deluxe</div>
+        <div class="text-purplebrand-200 mb-2">Deluxe session, maximum gains</div>
+        <ul class="list-disc list-inside text-sm text-gray-300 space-y-1">
+          <li>15-minute free trial session</li>
+          <li>60-minute private coaching session via Discord</li>
+          <li>Full car setup assistance</li>
+          <li>Access to all future setups provided by us</li>
+          <li>€4 discount on your next coaching package</li>
+          <li>Priority booking for future sessions</li>
+        </ul>
+      </div>
+      <div>
+        <div class="text-3xl font-extrabold mt-4">€20</div>
+        <div class="grid gap-2 mt-2">
           <button onclick="paywithboth('hyper')" class="btn w-full px-4 py-3 rounded-xl bg-purplebrand-600 hover:bg-purplebrand-500">Pay with Stripe</button>
-         <button onclick="paywithboth('hyperPP')" class="btn w-full px-4 py-3 rounded-xl bg-purplebrand-600 hover:bg-purplebrand-500">Pay with PayPal</button>
+          <button onclick="paywithboth('hyperPP')" class="btn w-full px-4 py-3 rounded-xl bg-purplebrand-600 hover:bg-purplebrand-500">Pay with PayPal</button>
         </div>
       </div>
     </div>
+
+  </div>
+</section>
+
 
     <h3 class="text-2xl font-bold mt-10 mb-3">Your bookings</h3>
     <div id="bookingList" class="grid gap-3"></div>
