@@ -200,7 +200,7 @@ function loadUserBookingsLive() {
       const b = docSnap.data();
       const id = docSnap.id;
 
-      // Filter in JS: show only current user's bookings
+      // Show only current user's bookings
       if (b.uid === user.uid) {
         items.push(`
           <div class="p-3 rounded-xl glass flex justify-between items-center"> 
@@ -210,8 +210,8 @@ function loadUserBookingsLive() {
             </div>
             <div class="text-xs text-purplebrand-300">${b.createdAt?.toDate ? b.createdAt.toDate().toLocaleString() : ''}</div>
             <div class="flex gap-2">
-              <button class="btn px-3 py-1 rounded-lg bg-neutral-800 hover:bg-neutral-700" data-mark-cancel="${id}" ${b.status==='paid'?'disabled':''}>Cancel</button>
-              <button class="btn px-3 py-1 rounded-lg bg-red-600 hover:bg-red-500" data-delete="${id}" ${b.status==='paid'?'disabled':''}>Delete</button>
+              <button class="btn px-3 py-1 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-sm font-semibold" data-mark-cancel="${id}" ${b.status==='paid'?'disabled':''}>Cancel</button>
+              <button class="btn px-3 py-1 rounded-lg bg-red-600 hover:bg-red-500 text-sm font-semibold" data-delete="${id}" ${b.status==='paid'?'disabled':''}>Delete</button>
             </div>
           </div>
         `);
@@ -219,7 +219,7 @@ function loadUserBookingsLive() {
     });
     bookingList.innerHTML = items.join('\n') || '<div class="text-sm text-purplebrand-200">No bookings yet.</div>';
 
-    // Attach user handlers
+    // Attach handlers
     bookingList.querySelectorAll('[data-mark-cancel]').forEach(btn => btn.addEventListener('click', async (e) => {
       const id = e.currentTarget.getAttribute('data-mark-cancel');
       await updateDoc(doc(db,'bookings',id), { status: 'canceled' });
@@ -238,7 +238,7 @@ function loadUserBookingsLive() {
   });
 }
 
-// Admin dashboard (client-side gated by email; secure via Firestore Rules too)
+// Admin dashboard
 async function loadAllBookingsLive() {
   adminList.innerHTML = '<div class="text-sm text-purplebrand-200">Loading…</div>';
   const q = query(collection(db, 'bookings'), orderBy('createdAt','desc'));
@@ -255,17 +255,17 @@ async function loadAllBookingsLive() {
           <div>€${b.priceEUR} • ${b.method}</div>
           <div class="text-sm ${b.status==='paid'?'text-green-300':'text-yellow-300'}">${b.status}${b.providerOrderId ? ` • #${b.providerOrderId}`:''}</div>
           <div class="flex gap-2">
-            <button class="btn px-3 py-1 rounded-lg bg-purplebrand-600 hover:bg-purplebrand-500" data-mark-paid="${id}" ${b.status==='paid'?'disabled':''}>Mark paid</button>
-            <button class="btn px-3 py-1 rounded-lg bg-neutral-800 hover:bg-neutral-700" data-mark-cancel="${id}" ${b.status==='paid'?'disabled':''}>Cancel</button>
-            <button class="btn px-3 py-1 rounded-lg bg-purplebrand-600 hover:bg-purplebrand-500" data-initialize="${id}">Initialize</button>
-            <button class="btn px-3 py-1 rounded-lg bg-red-600 hover:bg-red-500" data-delete="${id}" ${b.status==='paid'?'disabled':''}>Delete</button>
+            <button class="btn px-3 py-1 rounded-lg bg-purplebrand-600 hover:bg-purplebrand-500 text-sm font-semibold" data-mark-paid="${id}" ${b.status==='paid'?'disabled':''}>Mark paid</button>
+            <button class="btn px-3 py-1 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-sm font-semibold" data-mark-cancel="${id}" ${b.status==='paid'?'disabled':''}>Cancel</button>
+            <button class="btn px-3 py-1 rounded-lg bg-purplebrand-600 hover:bg-purplebrand-500 text-sm font-semibold" data-initialize="${id}">Initialize</button>
+            <button class="btn px-3 py-1 rounded-lg bg-red-600 hover:bg-red-500 text-sm font-semibold" data-delete="${id}" ${b.status==='paid'?'disabled':''}>Delete</button>
           </div>
         </div>
       `);
     });
     adminList.innerHTML = items.join('\n') || '<div class="text-sm text-purplebrand-200">No bookings found.</div>';
 
-    // attach handlers
+    // Attach handlers
     adminList.querySelectorAll('[data-mark-paid]').forEach(btn => btn.addEventListener('click', async (e) => {
       const id = e.currentTarget.getAttribute('data-mark-paid');
       await updateDoc(doc(db,'bookings',id), { status: 'paid' });
@@ -299,22 +299,17 @@ onAuthStateChanged(auth, (user) => {
     show(userSection);
     $('#userEmail').textContent = user.email || 'Account';
 
-    // User-Dashboard laden
     loadUserBookingsLive();
 
-    // Refresh-Button nur einmalig
     if (bookingList && !document.getElementById('refreshUserBookings')) {
       const refreshBtn = document.createElement('button');
       refreshBtn.id = 'refreshUserBookings';
       refreshBtn.className = 'mb-3 px-4 py-2 rounded-xl bg-purplebrand-600 hover:bg-purplebrand-500 text-white font-semibold shadow-md';
       refreshBtn.textContent = 'Aktualisieren';
       bookingList.parentNode.insertBefore(refreshBtn, bookingList);
-
-      // Klick = Live-Reload
       refreshBtn.addEventListener('click', () => loadUserBookingsLive());
     }
 
-    // Admin check
     if (ADMIN_EMAIL.some(e => e.toLowerCase() === (user.email || '').toLowerCase())) {
       show(adminSection);
       loadAllBookingsLive();
@@ -327,7 +322,6 @@ onAuthStateChanged(auth, (user) => {
     hide(adminSection);
   }
 });
-
 
 
     //-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
