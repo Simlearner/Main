@@ -189,7 +189,6 @@ function loadUserBookingsLive() {
 
   bookingList.innerHTML = '<div class="text-sm text-purplebrand-200">Loading…</div>';
 
-  // Listen to all bookings, filter by current user
   const q = query(collection(db, 'bookings'), orderBy('createdAt', 'desc'));
 
   if (unsubscribeUserBookings) unsubscribeUserBookings();
@@ -207,6 +206,7 @@ function loadUserBookingsLive() {
               <div class="font-semibold text-white">${b.packageName} <span class="text-purplebrand-300">(${b.method})</span></div>
               <div class="text-sm text-purplebrand-200">€${b.priceEUR} • ${b.status}${b.providerOrderId ? ` • #${b.providerOrderId}`:''}</div>
             </div>
+            <div class="text-xs text-purplebrand-300">${b.createdAt?.toDate ? b.createdAt.toDate().toLocaleString() : ''}</div>
             <div class="flex gap-2">
               <button class="btn px-3 py-1 rounded-lg bg-neutral-800 hover:bg-neutral-700" data-mark-cancel="${id}" ${b.status==='paid'?'disabled':''}>Cancel</button>
             </div>
@@ -216,7 +216,6 @@ function loadUserBookingsLive() {
     });
     bookingList.innerHTML = items.join('\n') || '<div class="text-sm text-purplebrand-200">No bookings yet.</div>';
 
-    // Attach cancel handlers
     bookingList.querySelectorAll('[data-mark-cancel]').forEach(btn => btn.addEventListener('click', async (e) => {
       const id = e.currentTarget.getAttribute('data-mark-cancel');
       await updateDoc(doc(db,'bookings',id), { status: 'canceled' });
@@ -244,7 +243,7 @@ async function loadAllBookingsLive() {
             <button class="btn px-3 py-1 rounded-lg bg-purplebrand-600 hover:bg-purplebrand-500" data-mark-paid="${id}" ${b.status==='paid'?'disabled':''}>Mark paid</button>
             <button class="btn px-3 py-1 rounded-lg bg-neutral-800 hover:bg-neutral-700" data-mark-cancel="${id}" ${b.status==='paid'?'disabled':''}>Cancel</button>
             <button class="btn px-3 py-1 rounded-lg bg-purplebrand-600 hover:bg-purplebrand-500" data-initialize="${id}">Initialize</button>
-            <button class="btn px-3 py-1 rounded-lg bg-neutral-800 hover:bg-neutral-700" data-delete="${id}" ${b.status==='paid'?'disabled':''}>Delete</button>
+            <button class="btn px-3 py-1 rounded-lg bg-red-600 hover:bg-red-500" data-delete="${id}" ${b.status==='paid'?'disabled':''}>Delete</button>
           </div>
         </div>
       `);
@@ -311,9 +310,6 @@ onAuthStateChanged(auth, (user) => {
     hide(adminSection);
   }
 });
-
-
-
 
 
     //-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
