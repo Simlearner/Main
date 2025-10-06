@@ -23,7 +23,6 @@ body { font-family: 'Inter', sans-serif; background-color: #0d0d0d; color: #f0f0
 
 <!-- ===================== Top: Firebase Config & Admin ===================== -->
 <script>
-    // ==== Firebase Config ====
 const firebaseConfig = {
   apiKey: "AIzaSyAy8RBotf1c-5tnH6CGMikBquROTr3W2Ho",
   authDomain: "simlearner-passwords.firebaseapp.com",
@@ -38,8 +37,8 @@ const firebaseConfig = {
     const ADMIN_EMAIL = ["simlearner@t-online.de", 
        "adamsch0f1eld024@gmail.com"]; // change to your email used to log in
 
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
 </script>
 
 <!-- Header -->
@@ -72,7 +71,7 @@ const firebaseConfig = {
     <div class="max-w-4xl mx-auto p-8 rounded-xl bg-gray-900 bg-opacity-80">
         <h1 class="text-3xl md:text-4xl font-bold text-center text-white mb-8">Community Setup Files</h1>
         
-        <!-- Upload Form (All users) -->
+        <!-- Upload Form -->
         <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700 mb-8">
             <h2 class="text-xl font-semibold text-violet-400 mb-4">Upload a Setup File</h2>
             <form id="upload-form" class="space-y-4">
@@ -93,7 +92,7 @@ const firebaseConfig = {
             </form>
         </div>
         
-        <!-- Setup List (Visible for all logged-in users) -->
+        <!-- Setup List -->
         <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700">
             <h2 class="text-xl font-semibold text-violet-400 mb-4">Available Setups</h2>
             <div id="setups-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
@@ -102,232 +101,162 @@ const firebaseConfig = {
     </div>
 </section>
 
-<!-- ===================== Firebase Auth + Upload/Fetch Script ===================== -->
+<!-- ===================== Script ===================== -->
 <script type="module">
-const setupsList = document.getElementById('setups-list');
-const loadingStatus = document.getElementById('loading-status');
-const uploadForm = document.getElementById('upload-form');
-const submitButton = document.getElementById('submit-button');
-const mainContent = document.getElementById('main-content');
-
-// Filter Dropdowns
-const carFilter = document.createElement('select');
-const trackFilter = document.createElement('select');
-carFilter.id = 'car-filter';
-trackFilter.id = 'track-filter';
-carFilter.className = trackFilter.className = 'w-full p-2 mb-4 rounded-lg bg-gray-700 text-white border border-gray-600';
-mainContent.insertBefore(carFilter, setupsList);
-mainContent.insertBefore(trackFilter, setupsList);
-
-// ===================== Google Sheet URLs (from your previous message) =====================
+// === Google Sheet URLs ===
 const GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwb0bEy06gwiauXZXcrGtY0ovKQAcnQKMGz1Q1WW8U4KMqoz2aElgzvxduimSIDGQuXoQ/exec';
 const GOOGLE_SHEET_URL = 'https://docs.google.com/spreadsheets/d/1d3gbxnn92OXDIa5R6paDF699H0x6Qgr7hJOTD8Qb6HM/gviz/tq?tqx=out:json';
 
-// ===================== Firebase Auth Handling =====================
+// === Elements ===
 const loginForm = document.getElementById('login-form');
 const registerButton = document.getElementById('register-button');
 const logoutButton = document.getElementById('logout-button');
 const loginMessage = document.getElementById('login-message');
-const loginStatus = document.getElementById('login-status');
+const mainContent = document.getElementById('main-content');
+const setupsList = document.getElementById('setups-list');
+const loadingStatus = document.getElementById('loading-status');
+const uploadForm = document.getElementById('upload-form');
+const submitButton = document.getElementById('submit-button');
 
-loginForm.addEventListener('submit', async e => {
+// === Authentication ===
+auth.onAuthStateChanged(user => {
+    if(user){
+        loginForm.parentElement.style.display = 'none';
+        logoutButton.classList.remove('hidden');
+        mainContent.classList.remove('hidden');
+        document.getElementById('login-status').textContent = ADMIN_EMAIL.includes(user.email) ? `Admin: ${user.email}` : `User: ${user.email}`;
+        fetchAndDisplaySetups();
+    } else {
+        loginForm.parentElement.style.display = 'block';
+        logoutButton.classList.add('hidden');
+        mainContent.classList.add('hidden');
+        document.getElementById('login-status').textContent = '';
+    }
+});
+
+loginForm.addEventListener('submit', e=>{
     e.preventDefault();
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
-
-    try {
-        await auth.signInWithEmailAndPassword(email, password);
-    } catch (error) {
-        loginMessage.textContent = error.message;
-    }
+    auth.signInWithEmailAndPassword(email,password)
+        .catch(err=>loginMessage.textContent = err.message);
 });
 
-registerButton.addEventListener('click', async () => {
+registerButton.addEventListener('click', ()=>{
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
-    try {
-        await auth.createUserWithEmailAndPassword(email, password);
-    } catch (error) {
-        loginMessage.textContent = error.message;
-    }
+    auth.createUserWithEmailAndPassword(email,password)
+        .catch(err=>loginMessage.textContent = err.message);
 });
 
-logoutButton.addEventListener('click', () => auth.signOut());
+logoutButton.addEventListener('click', ()=>auth.signOut());
 
-auth.onAuthStateChanged(user => {
-    if (user) {
-        loginForm.style.display = 'none';
-        logoutButton.classList.remove('hidden');
-        mainContent.classList.remove('hidden');
-        const isAdmin = ADMIN_EMAIL.includes(user.email);
-        loginStatus.textContent = `${user.email} (${isAdmin ? 'Admin' : 'User'}) logged in`;
-        fetchAndDisplaySetups();
-    } else {
-        loginForm.style.display = '';
-        logoutButton.classList.add('hidden');
-        mainContent.classList.add('hidden');
-        loginStatus.textContent = '';
-    }
-});
-
-// ===================== Fetch / Display Setups =====================
+// === Fetch/Render Setups ===
 let allSetups = [];
 
-async function fetchAndDisplaySetups() {
+async function fetchAndDisplaySetups(){
     loadingStatus.textContent = 'Loading setups...';
     setupsList.innerHTML = '';
-
-    try {
-        const response = await fetch(GOOGLE_SHEET_URL);
-        if (!response.ok) throw new Error('Network response not ok');
-        const textData = await response.text();
-        const jsonTextMatch = textData.match(/\{.*\}/s);
-        if (!jsonTextMatch) throw new Error('Sheet parsing failed');
-
-        const json = JSON.parse(jsonTextMatch[0]);
+    try{
+        const res = await fetch(GOOGLE_SHEET_URL);
+        const textData = await res.text();
+        const jsonText = textData.match(/\{.*\}/s)[0];
+        const json = JSON.parse(jsonText);
         const rows = json.table.rows;
-
-        if (rows.length > 1) {
-            allSetups = rows.slice(1).map(row => {
-                const columns = row.c;
-                let owner = columns[4]?.v || 'Admin';
-                return {
-                    carName: columns[0]?.v || 'N/A',
-                    trackName: columns[1]?.v || 'N/A',
-                    fileName: columns[2]?.v || 'N/A',
-                    fileContent: columns[3]?.v || '',
-                    owner: owner
-                };
-            });
-
-            populateFilters();
-            renderSetups();
-            loadingStatus.textContent = '';
-        } else {
-            loadingStatus.textContent = 'No setups have been uploaded yet.';
-        }
-    } catch (error) {
-        console.error(error);
-        loadingStatus.textContent = 'Error loading setups. Please check your Google Sheet URL or sharing settings.';
+        allSetups = rows.slice(1).map(r=>{
+            const c=r.c;
+            return {
+                carName:c[0]?.v||'N/A',
+                trackName:c[1]?.v||'N/A',
+                fileName:c[2]?.v||'N/A',
+                fileContent:c[3]?.v||'',
+                owner:c[4]?.v||'Admin'
+            }
+        });
+        renderSetups();
+        loadingStatus.textContent='';
+    }catch(err){
+        console.error(err);
+        loadingStatus.textContent='Error loading setups. Check Google Sheet URL/sharing.';
     }
 }
 
-// ===================== Filter =====================
-function populateFilters() {
-    const cars = ['All', ...new Set(allSetups.map(s => s.carName))];
-    const tracks = ['All', ...new Set(allSetups.map(s => s.trackName))];
-
-    carFilter.innerHTML = '';
-    trackFilter.innerHTML = '';
-    cars.forEach(c => carFilter.innerHTML += `<option value="${c}">${c}</option>`);
-    tracks.forEach(t => trackFilter.innerHTML += `<option value="${t}">${t}</option>`);
-
-    carFilter.onchange = trackFilter.onchange = renderSetups;
-}
-
-// ===================== Render Setups =====================
-function renderSetups() {
-    setupsList.innerHTML = '';
-    const carValue = carFilter.value;
-    const trackValue = trackFilter.value;
-    const currentUserEmail = firebase.auth().currentUser?.email;
+function renderSetups(){
+    setupsList.innerHTML='';
+    const currentUserEmail = auth.currentUser?.email;
     const isAdmin = ADMIN_EMAIL.includes(currentUserEmail);
-
-    allSetups.forEach(setup => {
-        if ((carValue === 'All' || setup.carName === carValue) &&
-            (trackValue === 'All' || setup.trackName === trackValue)) {
-
-            const card = document.createElement('div');
-            card.className = 'setup-card';
-            let deleteButtonHTML = '';
-
-            if (isAdmin || setup.owner === currentUserEmail) {
-                deleteButtonHTML = `<button class="delete-btn px-2 py-1 bg-red-600 rounded text-white">Delete</button>`;
-            }
-
-            card.innerHTML = `
-                <h3 class="text-xl font-bold text-violet-300">${setup.carName}</h3>
-                <p class="text-gray-400 mb-1">Track: ${setup.trackName}</p>
-                <p class="text-gray-400 mb-1">File: ${setup.fileName}</p>
-                <p class="text-gray-400 mb-2">Owner: ${setup.owner}</p>
-                <div class="flex space-x-2">
-                    <a href="data:application/json;charset=utf-8,${encodeURIComponent(setup.fileContent)}" download="${setup.fileName}" class="download-button">Download</a>
-                    ${deleteButtonHTML}
-                </div>`;
-
-            setupsList.appendChild(card);
-
-            if (deleteButtonHTML) {
-                card.querySelector('.delete-btn').addEventListener('click', async () => {
-                    if (confirm('Are you sure you want to delete this setup?')) {
-                        await deleteSetup(setup);
-                    }
-                });
-            }
+    allSetups.forEach(s=>{
+        const card = document.createElement('div');
+        card.className='setup-card';
+        let deleteBtn='';
+        if(isAdmin || s.owner===currentUserEmail) deleteBtn='<button class="delete-btn px-2 py-1 bg-red-600 rounded text-white">Delete</button>';
+        card.innerHTML=`
+            <h3 class="text-xl font-bold text-violet-300">${s.carName}</h3>
+            <p class="text-gray-400 mb-1">Track: ${s.trackName}</p>
+            <p class="text-gray-400 mb-1">File: ${s.fileName}</p>
+            <p class="text-gray-400 mb-2">Owner: ${s.owner}</p>
+            <div class="flex space-x-2">
+                <a href="data:application/json;charset=utf-8,${encodeURIComponent(s.fileContent)}" download="${s.fileName}" class="download-button">Download</a>
+                ${deleteBtn}
+            </div>`;
+        setupsList.appendChild(card);
+        if(deleteBtn){
+            card.querySelector('.delete-btn').addEventListener('click',async ()=>{
+                if(confirm('Delete this setup?')) await deleteSetup(s);
+            });
         }
     });
 }
 
-// ===================== Delete Setup =====================
-async function deleteSetup(setup) {
-    try {
-        await fetch(GOOGLE_APPS_SCRIPT_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'delete', fileName: setup.fileName })
+async function deleteSetup(setup){
+    try{
+        await fetch(GOOGLE_APPS_SCRIPT_URL,{
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({action:'delete', fileName:setup.fileName})
         });
         fetchAndDisplaySetups();
-    } catch (error) {
-        console.error(error);
-        alert('Error deleting setup. Please try again.');
+    }catch(err){
+        console.error(err);
+        alert('Error deleting setup.');
     }
 }
 
-// ===================== Upload Setup =====================
-uploadForm.addEventListener('submit', async e => {
+// === Upload Setup ===
+uploadForm.addEventListener('submit',e=>{
     e.preventDefault();
-    const carName = document.getElementById('car-name').value;
-    const trackName = document.getElementById('track-name').value;
-    const fileInput = document.getElementById('setup-file');
-    const file = fileInput.files[0];
-
-    if (!carName || !trackName || !file) {
-        document.getElementById('upload-status').textContent = 'Please fill out all fields and select a file.';
+    const carName=document.getElementById('car-name').value;
+    const trackName=document.getElementById('track-name').value;
+    const fileInput=document.getElementById('setup-file');
+    const file=fileInput.files[0];
+    if(!carName || !trackName || !file){
+        document.getElementById('upload-status').textContent='Please fill out all fields and select a file.';
         return;
     }
-
-    submitButton.disabled = true;
-    document.getElementById('upload-status').textContent = 'Uploading setup...';
-
-    const reader = new FileReader();
-    reader.onload = async event => {
-        const fileContent = event.target.result;
-        const currentUserEmail = firebase.auth().currentUser?.email || 'Admin';
-        const uploadData = {
-            carName, trackName,
-            fileName: file.name,
-            fileContent,
-            owner: currentUserEmail
-        };
-
-        try {
-            await fetch(GOOGLE_APPS_SCRIPT_URL, {
-                method: 'POST',
-                body: JSON.stringify(uploadData),
-                mode: 'no-cors',
-                headers: { 'Content-Type': 'application/json' }
+    submitButton.disabled=true;
+    document.getElementById('upload-status').textContent='Uploading setup...';
+    const reader=new FileReader();
+    reader.onload=async event=>{
+        const fileContent=event.target.result;
+        const currentUserEmail = auth.currentUser?.email || 'Admin';
+        const uploadData={carName, trackName, fileName:file.name, fileContent, owner:currentUserEmail};
+        try{
+            await fetch(GOOGLE_APPS_SCRIPT_URL,{
+                method:'POST',
+                body:JSON.stringify(uploadData),
+                mode:'no-cors',
+                headers:{'Content-Type':'application/json'}
             });
-            document.getElementById('upload-status').textContent = 'Setup uploaded successfully!';
+            document.getElementById('upload-status').textContent='Setup uploaded successfully!';
             uploadForm.reset();
             fetchAndDisplaySetups();
-        } catch (error) {
-            console.error(error);
-            document.getElementById('upload-status').textContent = 'Error uploading setup.';
-        } finally { submitButton.disabled = false; }
+        }catch(err){
+            console.error(err);
+            document.getElementById('upload-status').textContent='Error uploading setup.';
+        }finally{submitButton.disabled=false;}
     };
     reader.readAsText(file);
 });
 </script>
-
 </body>
 </html>
