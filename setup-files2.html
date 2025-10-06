@@ -103,15 +103,9 @@ const auth = firebase.auth();
 
 <!-- ===================== Firebase Auth + Upload/Fetch Script ===================== -->
 <script type="module">
-const loginForm = document.getElementById('login-form');
-const registerButton = document.getElementById('register-button');
-const logoutButton = document.getElementById('logout-button');
-const loginMessage = document.getElementById('login-message');
-const loginStatus = document.getElementById('login-status');
-const mainContent = document.getElementById('main-content');
-const uploadForm = document.getElementById('upload-form');
 const setupsList = document.getElementById('setups-list');
 const loadingStatus = document.getElementById('loading-status');
+const uploadForm = document.getElementById('upload-form');
 const submitButton = document.getElementById('submit-button');
 
 // Filter Dropdowns
@@ -120,68 +114,12 @@ const trackFilter = document.createElement('select');
 carFilter.id = 'car-filter';
 trackFilter.id = 'track-filter';
 carFilter.className = trackFilter.className = 'w-full p-2 mb-4 rounded-lg bg-gray-700 text-white border border-gray-600';
-mainContent.insertBefore(carFilter, setupsList);
-mainContent.insertBefore(trackFilter, setupsList);
+document.getElementById('main-content').insertBefore(carFilter, setupsList);
+document.getElementById('main-content').insertBefore(trackFilter, setupsList);
 
 // ===================== Google Sheet URLs =====================
 const GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwb0bEy06gwiauXZXcrGtY0ovKQAcnQKMGz1Q1WW8U4KMqoz2aElgzvxduimSIDGQuXoQ/exec';
 const GOOGLE_SHEET_URL = 'https://docs.google.com/spreadsheets/d/1d3gbxnn92OXDIa5R6paDF699H0x6Qgr7hJOTD8Qb6HM/gviz/tq?tqx=out:json';
-
-// ===================== Login / Registration =====================
-loginForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const email = document.getElementById('email').value;
-    const password = document.getElementById('password').value;
-    loginMessage.textContent = '';
-    try {
-        await auth.signInWithEmailAndPassword(email, password);
-    } catch (error) {
-        console.error(error);
-        loginMessage.textContent = error.message;
-    }
-});
-
-registerButton.addEventListener('click', async () => {
-    const email = document.getElementById('email').value;
-    const password = document.getElementById('password').value;
-    loginMessage.textContent = '';
-    try {
-        await auth.createUserWithEmailAndPassword(email, password);
-        loginMessage.textContent = 'Registration successful! You are now logged in.';
-    } catch (error) {
-        console.error(error);
-        loginMessage.textContent = error.message;
-    }
-});
-
-logoutButton.addEventListener('click', async () => { await auth.signOut(); });
-
-// ===================== Auth State =====================
-let currentUserEmail = '';
-
-auth.onAuthStateChanged(user => {
-    if(user){
-        currentUserEmail = user.email;
-        loginForm.style.display = 'none';
-        logoutButton.style.display = 'block';
-        mainContent.style.display = 'block';
-
-        const isAdmin = ADMIN_EMAIL.includes(user.email);
-        loginStatus.textContent = `Logged in as: ${user.email} (${isAdmin ? 'Admin' : 'User'})`;
-
-        // Upload-Form only visible to Admins
-        uploadForm.parentElement.style.display = isAdmin ? 'block' : 'none';
-
-        fetchAndDisplaySetups();
-    } else {
-        currentUserEmail = '';
-        loginForm.style.display = 'block';
-        logoutButton.style.display = 'none';
-        mainContent.style.display = 'none';
-        uploadForm.parentElement.style.display = 'none';
-        loginStatus.textContent='';
-    }
-});
 
 // ===================== Fetch / Display Setups =====================
 let allSetups = [];
@@ -204,7 +142,7 @@ async function fetchAndDisplaySetups() {
         if(rows.length > 1){
             allSetups = rows.slice(1).map(row => {
                 const columns = row.c;
-                let owner = columns[4]?.v || 'Admin'; // set old/empty owners to Admin
+                let owner = columns[4]?.v || 'Admin'; // old setups without owner = Admin
                 return {
                     carName: columns[0]?.v || 'N/A',
                     trackName: columns[1]?.v || 'N/A',
@@ -244,7 +182,7 @@ function renderSetups() {
     setupsList.innerHTML = '';
     const carValue = carFilter.value;
     const trackValue = trackFilter.value;
-    const isAdmin = ADMIN_EMAIL.includes(currentUserEmail);
+    const isAdmin = ADMIN_EMAIL.includes(firebase.auth().currentUser?.email);
 
     allSetups.forEach(setup => {
         if((carValue === 'All' || setup.carName === carValue) &&
@@ -254,7 +192,7 @@ function renderSetups() {
             card.className = 'setup-card';
             let deleteButtonHTML = '';
 
-            if(isAdmin || setup.owner === currentUserEmail){
+            if(isAdmin || setup.owner === firebase.auth().currentUser?.email){
                 deleteButtonHTML = `<button class="delete-btn px-2 py-1 bg-red-600 rounded text-white">Delete</button>`;
             }
 
@@ -315,11 +253,12 @@ uploadForm.addEventListener('submit', async e => {
     const reader = new FileReader();
     reader.onload = async event => {
         const fileContent = event.target.result;
+        const currentUser = firebase.auth().currentUser;
         const uploadData = {
             carName, trackName,
             fileName: file.name,
             fileContent,
-            owner: currentUserEmail
+            owner: currentUser?.email || 'Admin'
         };
 
         try {
