@@ -252,7 +252,7 @@ function renderSetups(){
                 })
             });
 
-            const result = await res.json(); // JSON-Antwort vom Server
+            const result = await res.json(); // JSON-Antwort vom Server auslesen
 
             if(result.result === 'success') {
                 alert('Setup deleted successfully!');
