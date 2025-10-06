@@ -239,7 +239,6 @@ function renderSetups(){
     card.querySelector('.delete-btn').addEventListener('click', async () => {
         if(!confirm('Delete this setup?')) return;
 
-        const currentUserEmail = auth.currentUser?.email || 'Admin';
         try {
             const res = await fetch(GOOGLE_APPS_SCRIPT_URL, {
                 method: 'POST',
@@ -253,11 +252,11 @@ function renderSetups(){
                 })
             });
 
-            const result = await res.json();
+            const result = await res.json(); // JSON-Antwort vom Server
 
             if(result.result === 'success') {
                 alert('Setup deleted successfully!');
-                fetchAndDisplaySetups();
+                fetchAndDisplaySetups(); // Liste neu laden
             } else {
                 alert('Error deleting setup: ' + result.message);
             }
