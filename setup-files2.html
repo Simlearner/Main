@@ -204,12 +204,13 @@ async function fetchAndDisplaySetups() {
         if(rows.length > 1){
             allSetups = rows.slice(1).map(row => {
                 const columns = row.c;
+                let owner = columns[4]?.v || 'Admin'; // set old/empty owners to Admin
                 return {
                     carName: columns[0]?.v || 'N/A',
                     trackName: columns[1]?.v || 'N/A',
                     fileName: columns[2]?.v || 'N/A',
                     fileContent: columns[3]?.v || '',
-                    owner: columns[4]?.v || '' // Owner column
+                    owner: owner
                 };
             });
 
@@ -259,9 +260,9 @@ function renderSetups() {
 
             card.innerHTML = `
                 <h3 class="text-xl font-bold text-violet-300">${setup.carName}</h3>
-                <p class="text-gray-400 mb-2">Track: ${setup.trackName}</p>
-                <p class="text-gray-500 text-sm mb-4">File: ${setup.fileName}</p>
-                <p class="text-gray-500 text-sm mb-4">Owner: ${setup.owner}</p>
+                <p class="text-gray-400 mb-1">Track: ${setup.trackName}</p>
+                <p class="text-gray-400 mb-1">File: ${setup.fileName}</p>
+                <p class="text-gray-400 mb-2">Owner: ${setup.owner}</p>
                 <div class="flex space-x-2">
                     <a href="data:application/json;charset=utf-8,${encodeURIComponent(setup.fileContent)}" download="${setup.fileName}" class="download-button">Download</a>
                     ${deleteButtonHTML}
