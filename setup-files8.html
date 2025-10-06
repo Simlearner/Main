@@ -235,9 +235,39 @@ function renderSetups(){
                     ${deleteBtn}
                 </div>`;
             setupsList.appendChild(card);
-            if(deleteBtn) card.querySelector('.delete-btn').addEventListener('click',async ()=>{
-                if(confirm('Delete this setup?')) await deleteSetup(s);
+            if(deleteBtn) {
+    card.querySelector('.delete-btn').addEventListener('click', async () => {
+        if(!confirm('Delete this setup?')) return;
+
+        const currentUserEmail = auth.currentUser?.email || 'Admin';
+        try {
+            const res = await fetch(GOOGLE_APPS_SCRIPT_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'delete',
+                    carName: s.carName,
+                    trackName: s.trackName,
+                    fileName: s.fileName,
+                    owner: s.owner
+                })
             });
+
+            const result = await res.json();
+
+            if(result.result === 'success') {
+                alert('Setup deleted successfully!');
+                fetchAndDisplaySetups();
+            } else {
+                alert('Error deleting setup: ' + result.message);
+            }
+        } catch(err) {
+            console.error(err);
+            alert('Network or server error while deleting setup.');
+        }
+    });
+}
+
         }
     });
 }
