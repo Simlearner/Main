@@ -271,18 +271,6 @@ function renderSetups(){
     });
 }
 
-// Delete
-async function deleteSetup(setup){
-    try{
-        await fetch(GOOGLE_APPS_SCRIPT_URL,{
-            method:'POST',
-            headers:{'Content-Type':'application/json'},
-            body:JSON.stringify({action:'delete', fileName:setup.fileName})
-        });
-        fetchAndDisplaySetups();
-    }catch(err){console.error(err); alert('Error deleting setup.');}
-}
-
 // Upload
 uploadForm.addEventListener('submit', e=>{
     e.preventDefault();
@@ -299,11 +287,11 @@ uploadForm.addEventListener('submit', e=>{
         const uploadData = {carName:carName.toString(), trackName:trackName.toString(), fileName:file.name.toString(), fileContent, owner:currentUserEmail.toString()};
         try{
             await fetch(GOOGLE_APPS_SCRIPT_URL,{
-                method:'POST',
-                body:JSON.stringify(uploadData),
-                mode:'no-cors',
-                headers:{'Content-Type':'application/json'}
-            });
+    method:'POST',
+    body:JSON.stringify(uploadData),
+    headers:{'Content-Type':'application/json'}
+});
+
             document.getElementById('upload-status').textContent='Setup uploaded successfully!';
             uploadForm.reset();
             carTextInput.style.display='none';
