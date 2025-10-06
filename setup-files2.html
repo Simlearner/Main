@@ -1,25 +1,45 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Setup Files</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Inter', sans-serif; background-color: #0d0d0d; color: #f0f0f0; }
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #1a1a1a; }
-        ::-webkit-scrollbar-thumb { background: #4a4a4a; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #5a5a5a; }
-        .setup-card { background-color: #1a1a1a; border-radius: 0.75rem; padding: 1rem; margin-bottom: 1rem; border: 1px solid #2d2d2d; }
-        .download-button { display: inline-block; padding: 0.5rem 1rem; background-color: #3b82f6; color: white; border-radius: 0.5rem; text-align: center; text-decoration: none; transition: background-color 0.3s; }
-        .download-button:hover { background-color: #2563eb; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Setup Files</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+body { font-family: 'Inter', sans-serif; background-color: #0d0d0d; color: #f0f0f0; }
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: #1a1a1a; }
+::-webkit-scrollbar-thumb { background: #4a4a4a; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #5a5a5a; }
+.setup-card { background-color: #1a1a1a; border-radius: 0.75rem; padding: 1rem; margin-bottom: 1rem; border: 1px solid #2d2d2d; }
+.download-button { display: inline-block; padding: 0.5rem 1rem; background-color: #3b82f6; color: white; border-radius: 0.5rem; text-align: center; text-decoration: none; transition: background-color 0.3s; }
+.download-button:hover { background-color: #2563eb; }
+</style>
 </head>
 <body class="antialiased">
+
+<!-- ===================== Top: Firebase Config & Admin ===================== -->
+<script>
+
+    const firebaseConfig = {
+  apiKey: "AIzaSyAy8RBotf1c-5tnH6CGMikBquROTr3W2Ho",
+  authDomain: "simlearner-passwords.firebaseapp.com",
+  projectId: "simlearner-passwords",
+  storageBucket: "simlearner-passwords.firebasestorage.app",
+  messagingSenderId: "521521557270",
+  appId: "1:521521557270:web:9247fb96fd758410e76a37",
+  measurementId: "G-8340L8QB2Y"
+  };
+
+    const ADMIN_EMAIL = ["simlearner@t-online.de", 
+       "adamsch0f1eld024@gmail.com"]; // change to your email used to log in
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+</script>
 
 <!-- Header -->
 <header class="py-6 px-4 md:px-8 lg:px-16 fixed w-full z-50 bg-gray-900 bg-opacity-80 backdrop-blur-sm">
@@ -31,28 +51,29 @@
     </nav>
 </header>
 
-<!-- Login Form -->
+<!-- ===================== Login & Register Form ===================== -->
 <section class="py-20 px-4 md:px-8 lg:px-16 pt-32 bg-gray-900">
     <div class="max-w-md mx-auto p-8 rounded-xl bg-gray-800 border border-gray-700 mb-8">
-        <h2 class="text-xl font-semibold text-violet-400 mb-4 text-center">Login</h2>
+        <h2 class="text-xl font-semibold text-violet-400 mb-4 text-center">Login / Register</h2>
         <form id="login-form" class="space-y-4">
             <input type="email" id="email" placeholder="Email" class="w-full p-2 rounded-lg bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-violet-500" required>
             <input type="password" id="password" placeholder="Password" class="w-full p-2 rounded-lg bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-violet-500" required>
             <button type="submit" class="w-full px-4 py-2 bg-violet-500 hover:bg-violet-600 rounded-lg text-white font-bold transition-colors duration-300">Login</button>
+            <button type="button" id="register-button" class="w-full px-4 py-2 bg-green-500 hover:bg-green-600 rounded-lg text-white font-bold transition-colors duration-300">Register</button>
             <p id="login-message" class="text-center text-sm mt-2 text-red-400"></p>
         </form>
         <button id="logout-button" class="w-full px-4 py-2 bg-red-500 hover:bg-red-600 rounded-lg text-white font-bold mt-4 hidden">Logout</button>
     </div>
 </section>
 
-<!-- Setup Files Section (hidden until login) -->
-<section id="setup-section" class="py-20 px-4 md:px-8 lg:px-16 pt-32 bg-gray-900 hidden">
+<!-- ===================== Main Content ===================== -->
+<section id="main-content" class="py-20 px-4 md:px-8 lg:px-16 pt-32 bg-gray-900 hidden">
     <div class="max-w-4xl mx-auto p-8 rounded-xl bg-gray-900 bg-opacity-80">
         <h1 class="text-3xl md:text-4xl font-bold text-center text-white mb-8">Community Setup Files</h1>
         
-        <!-- Upload Form -->
-        <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700 mb-8">
-            <h2 class="text-xl font-semibold text-violet-400 mb-4">Upload a Setup File</h2>
+        <!-- Upload Form (Admin Only) -->
+        <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700 mb-8" style="display:none;">
+            <h2 class="text-xl font-semibold text-violet-400 mb-4">Upload a Setup File (Admin Only)</h2>
             <form id="upload-form" class="space-y-4">
                 <div>
                     <label for="car-name" class="block text-gray-400 mb-1">Car Name</label>
@@ -71,7 +92,7 @@
             </form>
         </div>
         
-        <!-- List for dynamically loaded setups -->
+        <!-- Setup List (Visible for all logged-in users) -->
         <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700">
             <h2 class="text-xl font-semibold text-violet-400 mb-4">Available Setups</h2>
             <div id="setups-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
@@ -80,74 +101,129 @@
     </div>
 </section>
 
-<!-- Firebase + Script -->
+<!-- ===================== Firebase Auth + Upload/Fetch Script ===================== -->
 <script type="module">
-    // --- Firebase Config ---
-    const firebaseConfig = {
-  apiKey: "AIzaSyAy8RBotf1c-5tnH6CGMikBquROTr3W2Ho",
-  authDomain: "simlearner-passwords.firebaseapp.com",
-  projectId: "simlearner-passwords",
-  storageBucket: "simlearner-passwords.firebasestorage.app",
-  messagingSenderId: "521521557270",
-  appId: "1:521521557270:web:9247fb96fd758410e76a37",
-  measurementId: "G-8340L8QB2Y"
-  };
+const loginForm = document.getElementById('login-form');
+const registerButton = document.getElementById('register-button');
+const logoutButton = document.getElementById('logout-button');
+const loginMessage = document.getElementById('login-message');
+const loginStatus = document.getElementById('login-status');
+const mainContent = document.getElementById('main-content');
+const uploadForm = document.getElementById('upload-form');
+const setupsList = document.getElementById('setups-list');
+const loadingStatus = document.getElementById('loading-status');
+const submitButton = document.getElementById('submit-button');
 
-    const ADMIN_EMAIL = ["simlearner@t-online.de", 
-       "adamsch0f1eld024@gmail.com"]; // change to your email used to log in
+// Replace with your actual Google Apps Script URL and Sheet
+const GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec';
+const GOOGLE_SHEET_URL = 'https://docs.google.com/spreadsheets/d/YOUR_SHEET_ID/gviz/tq?tqx=out:json';
 
-    // Initialize Firebase
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
+// --- Login ---
+loginForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    loginMessage.textContent = '';
+    try { await auth.signInWithEmailAndPassword(email, password); }
+    catch(error) { console.error(error); loginMessage.textContent = error.message; }
+});
 
-    const loginForm = document.getElementById('login-form');
-    const logoutButton = document.getElementById('logout-button');
-    const loginMessage = document.getElementById('login-message');
-    const loginStatus = document.getElementById('login-status');
-    const setupSection = document.getElementById('setup-section');
+// --- Registration ---
+registerButton.addEventListener('click', async () => {
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    loginMessage.textContent = '';
+    try {
+        await auth.createUserWithEmailAndPassword(email, password);
+        loginMessage.textContent = 'Registrierung erfolgreich! Du bist nun eingeloggt.';
+    } catch (error) {
+        console.error(error);
+        loginMessage.textContent = error.message;
+    }
+});
 
-    // --- Login ---
-    loginForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
-        loginMessage.textContent = '';
-        try {
-            await auth.signInWithEmailAndPassword(email, password);
-        } catch (error) {
-            console.error(error);
-            loginMessage.textContent = error.message;
-        }
-    });
+// --- Logout ---
+logoutButton.addEventListener('click', async () => { await auth.signOut(); });
 
-    // --- Logout ---
-    logoutButton.addEventListener('click', async () => {
-        await auth.signOut();
-    });
+// --- Auth State ---
+auth.onAuthStateChanged(user => {
+    if(user){
+        loginForm.style.display='none';
+        logoutButton.style.display='block';
+        loginStatus.textContent=`Eingeloggt als: ${user.email}`;
+        mainContent.style.display='block';
+        if(ADMIN_EMAIL.includes(user.email)) uploadForm.parentElement.style.display='block';
+        else uploadForm.parentElement.style.display='none';
+        fetchAndDisplaySetups();
+    }else{
+        loginForm.style.display='block';
+        logoutButton.style.display='none';
+        mainContent.style.display='none';
+        uploadForm.parentElement.style.display='none';
+        loginStatus.textContent='';
+    }
+});
 
-    // --- Auth State Listener ---
-    auth.onAuthStateChanged(user => {
-        if (user) {
-            loginForm.style.display = 'none';
-            logoutButton.style.display = 'block';
-            loginStatus.textContent = `Eingeloggt als: ${user.email}`;
-            // Zeige Setup-Bereich nur für Admins
-            if (ADMIN_EMAIL.includes(user.email)) {
-                setupSection.style.display = 'block';
-            } else {
-                setupSection.style.display = 'none';
-            }
-        } else {
-            loginForm.style.display = 'block';
-            logoutButton.style.display = 'none';
-            loginStatus.textContent = '';
-            setupSection.style.display = 'none';
-        }
-    });
+// --- Fetch Setups ---
+async function fetchAndDisplaySetups() {
+    loadingStatus.textContent='Loading setups...';
+    setupsList.innerHTML='';
+    try{
+        const response = await fetch(GOOGLE_SHEET_URL);
+        if(!response.ok) throw new Error('Network response was not ok');
+        const data = await response.text();
+        const jsonText = data.substring(data.indexOf('{'), data.lastIndexOf('}')+1);
+        const json = JSON.parse(jsonText);
+        const rows = json.table.rows;
+        if(rows.length>1){
+            loadingStatus.textContent='';
+            rows.slice(1).forEach(row=>{
+                const columns = row.c;
+                const carName = columns[0]?.v||'N/A';
+                const trackName = columns[1]?.v||'N/A';
+                const fileName = columns[2]?.v||'N/A';
+                const fileContent = columns[3]?.v||'';
+                const setupCard=document.createElement('div');
+                setupCard.className='setup-card';
+                setupCard.innerHTML=`
+                    <h3 class="text-xl font-bold text-violet-300">${carName}</h3>
+                    <p class="text-gray-400 mb-2">Track: ${trackName}</p>
+                    <p class="text-gray-500 text-sm mb-4">File: ${fileName}</p>
+                    <div class="flex space-x-2">
+                        <a href="data:application/json;charset=utf-8,${encodeURIComponent(fileContent)}" download="${fileName}" class="download-button">Download</a>
+                    </div>`;
+                setupsList.appendChild(setupCard);
+            });
+        } else loadingStatus.textContent='No setups have been uploaded yet.';
+    }catch(error){ console.error(error); loadingStatus.textContent='Error loading setups.'; }
+}
 
-    // --- Rest deiner bisherigen Scripts (Upload & Fetch Setups) ---
-    // Hier einfach deinen bisherigen Code für fetchAndDisplaySetups() und Upload einfügen
+// --- Upload Setup ---
+uploadForm.addEventListener('submit', async e=>{
+    e.preventDefault();
+    const carName=document.getElementById('car-name').value;
+    const trackName=document.getElementById('track-name').value;
+    const fileInput=document.getElementById('setup-file');
+    const file=fileInput.files[0];
+    if(!carName || !trackName || !file){ document.getElementById('upload-status').textContent='Please fill out all fields.'; return; }
+    submitButton.disabled=true;
+    document.getElementById('upload-status').textContent='Uploading setup...';
+    const reader=new FileReader();
+    reader.onload=async event=>{
+        const fileContent=event.target.result;
+        const uploadData={carName, trackName, fileName:file.name, fileContent};
+        try{
+            await fetch(GOOGLE_APPS_SCRIPT_URL,{method:'POST',body:JSON.stringify(uploadData),mode:'no-cors',headers:{'Content-Type':'application/json'}});
+            document.getElementById('upload-status').textContent='Setup uploaded successfully!';
+            uploadForm.reset();
+            fetchAndDisplaySetups();
+        }catch(error){ console.error(error); document.getElementById('upload-status').textContent='Upload error.'; }
+        finally{ submitButton.disabled=false; }
+    };
+    reader.readAsText(file);
+});
 </script>
 
 </body>
 </html>
+
