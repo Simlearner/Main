@@ -114,11 +114,20 @@ const setupsList = document.getElementById('setups-list');
 const loadingStatus = document.getElementById('loading-status');
 const submitButton = document.getElementById('submit-button');
 
-// Replace with your actual Google Apps Script URL and Sheet
+// Filter Dropdowns
+const carFilter = document.createElement('select');
+const trackFilter = document.createElement('select');
+carFilter.id = 'car-filter';
+trackFilter.id = 'track-filter';
+carFilter.className = trackFilter.className = 'w-full p-2 mb-4 rounded-lg bg-gray-700 text-white border border-gray-600';
+mainContent.insertBefore(carFilter, setupsList);
+mainContent.insertBefore(trackFilter, setupsList);
+
+// ===================== Google Sheet URLs =====================
 const GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwb0bEy06gwiauXZXcrGtY0ovKQAcnQKMGz1Q1WW8U4KMqoz2aElgzvxduimSIDGQuXoQ/exec';
 const GOOGLE_SHEET_URL = 'https://docs.google.com/spreadsheets/d/1d3gbxnn92OXDIa5R6paDF699H0x6Qgr7hJOTD8Qb6HM/gviz/tq?tqx=out:json';
 
-// --- Login ---
+// ===================== Login / Registration =====================
 loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const email = document.getElementById('email').value;
@@ -132,7 +141,6 @@ loginForm.addEventListener('submit', async (e) => {
     }
 });
 
-// --- Registration ---
 registerButton.addEventListener('click', async () => {
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
@@ -146,12 +154,14 @@ registerButton.addEventListener('click', async () => {
     }
 });
 
-// --- Logout ---
 logoutButton.addEventListener('click', async () => { await auth.signOut(); });
 
-// --- Auth State ---
+// ===================== Auth State =====================
+let currentUserEmail = '';
+
 auth.onAuthStateChanged(user => {
     if(user){
+        currentUserEmail = user.email;
         loginForm.style.display = 'none';
         logoutButton.style.display = 'block';
         mainContent.style.display = 'block';
@@ -159,65 +169,132 @@ auth.onAuthStateChanged(user => {
         const isAdmin = ADMIN_EMAIL.includes(user.email);
         loginStatus.textContent = `Eingeloggt als: ${user.email} (${isAdmin ? 'Admin' : 'User'})`;
 
-        // Upload nur für Admins
-        if(isAdmin) uploadForm.parentElement.style.display='block';
-        else uploadForm.parentElement.style.display='none';
+        uploadForm.parentElement.style.display = isAdmin ? 'block' : 'none';
 
         fetchAndDisplaySetups();
     } else {
-        loginForm.style.display='block';
-        logoutButton.style.display='none';
-        mainContent.style.display='none';
-        uploadForm.parentElement.style.display='none';
+        currentUserEmail = '';
+        loginForm.style.display = 'block';
+        logoutButton.style.display = 'none';
+        mainContent.style.display = 'none';
+        uploadForm.parentElement.style.display = 'none';
         loginStatus.textContent='';
     }
 });
 
-// --- Fetch Setups (so wie es vorher bei dir funktionierte) ---
+// ===================== Fetch / Display Setups =====================
+let allSetups = [];
+
 async function fetchAndDisplaySetups() {
     loadingStatus.textContent = 'Loading setups...';
     setupsList.innerHTML = '';
 
     try {
         const response = await fetch(GOOGLE_SHEET_URL);
-        if(!response.ok) throw new Error('Network response was not ok');
+        if(!response.ok) throw new Error('Network response not ok');
         const textData = await response.text();
 
-        // Google Sheets JSONP Parsing wie vorher
-        const jsonText = textData.substring(textData.indexOf('{'), textData.lastIndexOf('}') + 1);
-        const json = JSON.parse(jsonText);
+        const jsonTextMatch = textData.match(/\{.*\}/s);
+        if(!jsonTextMatch) throw new Error('Sheet parsing failed');
+
+        const json = JSON.parse(jsonTextMatch[0]);
         const rows = json.table.rows;
 
         if(rows.length > 1){
-            loadingStatus.textContent = '';
-            rows.slice(1).forEach(row => {
+            allSetups = rows.slice(1).map(row => {
                 const columns = row.c;
-                const carName = columns[0]?.v || 'N/A';
-                const trackName = columns[1]?.v || 'N/A';
-                const fileName = columns[2]?.v || 'N/A';
-                const fileContent = columns[3]?.v || '';
-
-                const setupCard = document.createElement('div');
-                setupCard.className = 'setup-card';
-                setupCard.innerHTML = `
-                    <h3 class="text-xl font-bold text-violet-300">${carName}</h3>
-                    <p class="text-gray-400 mb-2">Track: ${trackName}</p>
-                    <p class="text-gray-500 text-sm mb-4">File: ${fileName}</p>
-                    <div class="flex space-x-2">
-                        <a href="data:application/json;charset=utf-8,${encodeURIComponent(fileContent)}" download="${fileName}" class="download-button">Download</a>
-                    </div>`;
-                setupsList.appendChild(setupCard);
+                return {
+                    carName: columns[0]?.v || 'N/A',
+                    trackName: columns[1]?.v || 'N/A',
+                    fileName: columns[2]?.v || 'N/A',
+                    fileContent: columns[3]?.v || '',
+                    owner: columns[4]?.v || '' // neue Owner-Spalte
+                };
             });
+
+            populateFilters();
+            renderSetups();
+            loadingStatus.textContent = '';
         } else {
             loadingStatus.textContent = 'No setups have been uploaded yet.';
         }
     } catch(error){
         console.error(error);
-        loadingStatus.textContent = 'Error loading setups. Bitte überprüfe deine Google Sheet URL oder die Freigabeeinstellungen.';
+        loadingStatus.textContent = 'Error loading setups. Bitte überprüfe die Google Sheet URL oder Freigabeeinstellungen.';
     }
 }
 
-// --- Upload Setup ---
+// ===================== Filter =====================
+function populateFilters() {
+    const cars = ['Alle', ...new Set(allSetups.map(s => s.carName))];
+    const tracks = ['Alle', ...new Set(allSetups.map(s => s.trackName))];
+
+    carFilter.innerHTML = '';
+    trackFilter.innerHTML = '';
+    cars.forEach(c => carFilter.innerHTML += `<option value="${c}">${c}</option>`);
+    tracks.forEach(t => trackFilter.innerHTML += `<option value="${t}">${t}</option>`);
+
+    carFilter.onchange = trackFilter.onchange = renderSetups;
+}
+
+// ===================== Render Setups =====================
+function renderSetups() {
+    setupsList.innerHTML = '';
+    const carValue = carFilter.value;
+    const trackValue = trackFilter.value;
+    const isAdmin = ADMIN_EMAIL.includes(currentUserEmail);
+
+    allSetups.forEach(setup => {
+        if((carValue === 'Alle' || setup.carName === carValue) &&
+           (trackValue === 'Alle' || setup.trackName === trackValue)) {
+
+            const card = document.createElement('div');
+            card.className = 'setup-card';
+            let deleteButtonHTML = '';
+
+            if(isAdmin || setup.owner === currentUserEmail){
+                deleteButtonHTML = `<button class="delete-btn px-2 py-1 bg-red-600 rounded text-white">Löschen</button>`;
+            }
+
+            card.innerHTML = `
+                <h3 class="text-xl font-bold text-violet-300">${setup.carName}</h3>
+                <p class="text-gray-400 mb-2">Track: ${setup.trackName}</p>
+                <p class="text-gray-500 text-sm mb-4">File: ${setup.fileName}</p>
+                <p class="text-gray-500 text-sm mb-4">Owner: ${setup.owner}</p>
+                <div class="flex space-x-2">
+                    <a href="data:application/json;charset=utf-8,${encodeURIComponent(setup.fileContent)}" download="${setup.fileName}" class="download-button">Download</a>
+                    ${deleteButtonHTML}
+                </div>`;
+
+            setupsList.appendChild(card);
+
+            if(deleteButtonHTML){
+                card.querySelector('.delete-btn').addEventListener('click', async () => {
+                    if(confirm('Möchtest du dieses Setup wirklich löschen?')){
+                        await deleteSetup(setup);
+                    }
+                });
+            }
+        }
+    });
+}
+
+// ===================== Delete Setup =====================
+async function deleteSetup(setup){
+    try {
+        await fetch(GOOGLE_APPS_SCRIPT_URL, {
+            method: 'POST',
+            headers: { 'Content-Type':'application/json' },
+            body: JSON.stringify({ action:'delete', fileName: setup.fileName })
+        });
+        fetchAndDisplaySetups();
+    } catch(error){
+        console.error(error);
+        alert('Fehler beim Löschen. Bitte erneut versuchen.');
+    }
+}
+
+// ===================== Upload Setup =====================
 uploadForm.addEventListener('submit', async e => {
     e.preventDefault();
     const carName = document.getElementById('car-name').value;
@@ -236,24 +313,27 @@ uploadForm.addEventListener('submit', async e => {
     const reader = new FileReader();
     reader.onload = async event => {
         const fileContent = event.target.result;
-        const uploadData = { carName, trackName, fileName: file.name, fileContent };
+        const uploadData = {
+            carName, trackName,
+            fileName: file.name,
+            fileContent,
+            owner: currentUserEmail
+        };
 
         try {
             await fetch(GOOGLE_APPS_SCRIPT_URL, {
-                method: 'POST',
-                body: JSON.stringify(uploadData),
-                mode: 'no-cors',
-                headers: { 'Content-Type': 'application/json' }
+                method:'POST',
+                body:JSON.stringify(uploadData),
+                mode:'no-cors',
+                headers:{'Content-Type':'application/json'}
             });
             document.getElementById('upload-status').textContent = 'Setup erfolgreich hochgeladen!';
             uploadForm.reset();
             fetchAndDisplaySetups();
-        } catch(error) {
+        } catch(error){
             console.error(error);
-            document.getElementById('upload-status').textContent = 'Fehler beim Upload. Bitte erneut versuchen.';
-        } finally {
-            submitButton.disabled = false;
-        }
+            document.getElementById('upload-status').textContent = 'Fehler beim Upload.';
+        } finally { submitButton.disabled=false; }
     };
     reader.readAsText(file);
 });
