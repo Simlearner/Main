@@ -174,7 +174,8 @@ async function fetchAndDisplaySetups(){
         trackName:c[1]?.v?.toString() || 'N/A',
         fileName:c[2]?.v?.toString() || 'N/A',
         fileContent:c[3]?.v?.toString() || '',
-        owner:c[4]?.v?.toString() || 'Admin'
+        owner:c[4]?.v?.toString() || 'Admin',
+        id:c[6]?.v?.toString() || ''   // <-- ID hinzufügen (Spalte G)
       }
     });
     populateFilters();
@@ -237,7 +238,7 @@ function renderSetups(){
           ${deleteBtn}
         </div>`;
       setupsList.appendChild(card);
-      if(deleteBtn) card.querySelector('.delete-btn').addEventListener('click',async ()=>{ if(confirm('Delete this setup?')) await deleteSetup(s); });
+      if(deleteBtn) card.querySelector('.delete-btn').addEventListener('click',async ()=>{ if(confirm('Delete this setup?')) await deleteSetup(s.id); });
     }
   });
 }
@@ -248,7 +249,7 @@ async function deleteSetup(setup){
     await fetch(GOOGLE_APPS_SCRIPT_URL,{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({action:'delete', fileName:setup.fileName})
+      body:JSON.stringify({action:'delete', id: setup})
     });
     fetchAndDisplaySetups();
   }catch(err){
