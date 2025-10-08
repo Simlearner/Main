@@ -254,7 +254,7 @@ async function deleteSetup(id){
     fetchAndDisplaySetups();
   }catch(err){
     console.error(err);
-    alert('Error deleting setup.');
+    alert('Error deleting setup, here is the ID: ' + id);
   }
 }
 
