@@ -238,23 +238,23 @@ function renderSetups(){
           ${deleteBtn}
         </div>`;
       setupsList.appendChild(card);
-      if(deleteBtn) card.querySelector('.delete-btn').addEventListener('click',async ()=>{ if(confirm('Delete this setup?')) await deleteSetup(s.id); });
+      if(deleteBtn) card.querySelector('.delete-btn').addEventListener('click',async ()=>{ if(confirm('Delete this setup?')) await deleteSetup(s); });
     }
   });
 }
 
 // Delete
-async function deleteSetup(id){
+async function deleteSetup(s){
   try{
     await fetch(GOOGLE_APPS_SCRIPT_URL,{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({action:'delete', id: id})
+      body:JSON.stringify({action:'delete', id: s.id})
     });
     fetchAndDisplaySetups();
   }catch(err){
     console.error(err);
-    alert('Error deleting setup, here is the ID: ' + id);
+    alert('Error deleting setup, here is the ID: ' + s);
   }
 }
 
