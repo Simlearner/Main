@@ -246,16 +246,23 @@ function renderSetups(){
 }
 
 // Delete
-async function deleteSetup(id){
-  try{
-    await fetch(GOOGLE_APPS_SCRIPT_URL,{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({action:'delete', id: id}) // ID statt filename
+async function deleteSetup(id) {
+  try {
+    const res = await fetch(GOOGLE_APPS_SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'delete', id })
     });
-    fetchAndDisplaySetups();
-  }catch(err){
-    console.error(err);
+
+    const json = await res.json();
+
+    if (json.result === 'success') {
+      fetchAndDisplaySetups(); // neu laden nach erfolgreichem Löschen
+    } else {
+      alert('Error deleting setup: ' + (json.message || 'Unknown error'));
+    }
+  } catch (error) {
+    console.error(error);
     alert('Error deleting setup.');
   }
 }
