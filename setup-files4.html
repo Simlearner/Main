@@ -244,7 +244,7 @@ function renderSetups(){
 }
 
 // Delete
-async function deleteSetup(setup){
+async function deleteSetup(id){
   try{
     await fetch(GOOGLE_APPS_SCRIPT_URL,{
       method:'POST',
