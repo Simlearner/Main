@@ -245,6 +245,7 @@ function renderSetups(){
 
 // Delete
 async function deleteSetup(s){
+  alert("setup content:\n" + JSON.stringify(sWithoutFileContent, null, 2));
   try{
     await fetch(GOOGLE_APPS_SCRIPT_URL,{
       method:'POST',
@@ -258,7 +259,6 @@ async function deleteSetup(s){
   console.log(s);
   }
   console.log(s);
-  alert("setup content:\n" + JSON.stringify(sWithoutFileContent, null, 2));
 }
 
 // Upload
