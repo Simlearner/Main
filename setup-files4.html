@@ -250,7 +250,7 @@ async function deleteSetup(setup){
       method:'POST',
       mode:'no-cors',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({action:'delete', id: setup.id})
+      body:JSON.stringify({action:'delete', id: id})
     });
     fetchAndDisplaySetups();
   }catch(err){
