@@ -254,7 +254,7 @@ async function deleteSetup(s){
     fetchAndDisplaySetups();
   }catch(err){
     console.error(err);
-   alert('Error3 deleting setup, here is s:\n' + JSON.stringify(s, null, 2));
+   alert("Error4 deleting setup:\n" + JSON.stringify(sWithoutFileContent, null, 2));
   console.log(s);
   }
 }
