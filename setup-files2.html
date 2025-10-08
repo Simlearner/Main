@@ -167,7 +167,7 @@ async function fetchAndDisplaySetups(){
     const jsonText=textData.match(/\{.*\}/s)[0];
     const json=JSON.parse(jsonText);
     const rows=json.table.rows;
-    allSetups = rows.slice(1).map(r => { … });
+    allSetups=rows.slice(1).map(r => { … });
       const c=r.c;
       return {
         carName: c[0]?.v?.toString() || 'N/A',
