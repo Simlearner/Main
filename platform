@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Race Simulator Coaching & Buchung</title>
+    <!-- Lade Tailwind CSS für modernes Styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Setze die Standard-Schriftart auf Inter und wähle einen dunklen Hintergrund */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0d1117; /* Sehr dunkles Grau/Schwarz */
+            color: #e5e7eb; /* Helle Textfarbe */
+        }
+        /* Styling für den Coaching-Button (wie ein Racing-Button) */
+        .racing-btn {
+            background-color: #ef4444; /* Rot wie Bremslicht */
+            color: #ffffff;
+            font-weight: bold;
+            transition: background-color 0.2s, transform 0.1s;
+            box-shadow: 0 4px #dc2626;
+        }
+        .racing-btn:hover {
+            background-color: #f87171;
+            box-shadow: 0 2px #dc2626;
+            transform: translateY(2px);
+        }
+        /* Stil für den aktiven Tab */
+        .tab-active {
+            border-bottom: 4px solid #f97316; /* Orange Akzent */
+            font-weight: 700;
+            color: #ffffff;
+        }
+        /* Scrollbar-Anpassung für die Terminlisten */
+        .scrollable-list {
+            max-height: 450px;
+            overflow-y: auto;
+            scrollbar-width: thin; /* Firefox */
+            scrollbar-color: #f97316 #1f2937; /* Orange Daumen, Dunkelgraue Spur */
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="max-w-4xl mx-auto bg-gray-800 p-6 md:p-10 rounded-xl shadow-2xl">
+        
+        <!-- Titel & Header -->
+        <h1 class="text-4xl md:text-5xl font-extrabold text-center mb-2 text-red-500 tracking-wider">
+            RaceAcademy
+        </h1>
+        <p class="text-center text-gray-400 mb-8">
+            Sim-Racing Coaching: Buchen oder Anbieten.
+            <span class="text-xs block mt-2 text-yellow-500">
+                (Dies ist ein Prototyp. Daten werden nicht gespeichert und bei Neuladen zurückgesetzt.)
+            </span>
+        </p>
+        
+        <!-- Tab-Navigation (Wechsel zwischen Client und Coach) -->
+        <div class="flex justify-center border-b border-gray-700 mb-8">
+            <button id="tabClient" class="py-3 px-6 text-lg text-gray-400 focus:outline-none transition tab-active" onclick="switchView('client')">
+                Client (Coaching buchen)
+            </button>
+            <button id="tabCoach" class="py-3 px-6 text-lg text-gray-400 focus:outline-none transition" onclick="switchView('coach')">
+                Coach (Slots verwalten)
+            </button>
+        </div>
+
+        <!-- Hauptansichten -->
+        <div id="clientView">
+            <h2 class="text-3xl font-bold mb-6 text-white border-l-4 border-orange-500 pl-3">
+                Verfügbare Coaches
+            </h2>
+            <div id="coachList" class="space-y-4 scrollable-list">
+                <!-- Coach-Karten werden hier von JS eingefügt -->
+            </div>
+        </div>
+
+        <div id="coachView" class="hidden">
+            <!-- NEUE FUNKTIONALITÄT: Verfügbarkeit anbieten -->
+            <div class="bg-gray-700 p-5 rounded-xl mb-8 border-b-4 border-gray-600">
+                <h3 class="text-2xl font-bold text-white mb-4">
+                    Neue Verfügbarkeit anbieten
+                </h3>
+                <div class="flex flex-col md:flex-row gap-4 items-end">
+                    <div class="flex-grow w-full">
+                        <label for="newSlotTime" class="block text-sm font-medium text-gray-300 mb-1">Datum & Zeit des Slots:</label>
+                        <input type="datetime-local" id="newSlotTime" class="w-full p-2 rounded bg-gray-800 border border-gray-600 focus:border-orange-500 text-white">
+                    </div>
+                    <button onclick="addAvailability()" class="racing-btn py-2 px-4 rounded-lg md:w-auto w-full">
+                        Slot hinzufügen
+                    </button>
+                </div>
+            </div>
+
+            <h2 class="text-3xl font-bold mb-6 text-white border-l-4 border-orange-500 pl-3">
+                Meine Termine & Angebote
+            </h2>
+            <div id="appointmentList" class="space-y-4 scrollable-list">
+                <!-- Termin-Karten werden hier von JS eingefügt -->
+            </div>
+        </div>
+
+        <!-- Modal für Buchungsanfrage (wird von JS gesteuert) -->
+        <div id="bookingModal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center p-4 z-50">
+            <div class="bg-gray-700 p-6 rounded-lg max-w-sm w-full">
+                <h3 class="text-2xl font-bold mb-4 text-white" id="modalTitle">Coaching buchen bei [Coach]</h3>
+                <p class="text-gray-300 mb-4">Preis: <span id="modalRate" class="font-bold text-orange-400">50 €/h</span></p>
+
+                <label for="clientName" class="block text-sm font-medium text-gray-300 mb-1">Ihr Name:</label>
+                <input type="text" id="clientName" placeholder="Ihr Name" class="w-full p-2 mb-4 rounded bg-gray-800 border border-gray-600 focus:border-orange-500 text-white">
+
+                <label for="appointmentTime" class="block text-sm font-medium text-gray-300 mb-1">Gewünschter Termin (Datum & Zeit):</label>
+                <input type="datetime-local" id="appointmentTime" class="w-full p-2 mb-6 rounded bg-gray-800 border border-gray-600 focus:border-orange-500 text-white">
+
+                <div class="flex justify-end space-x-3">
+                    <button onclick="closeModal()" class="py-2 px-4 rounded bg-gray-500 hover:bg-gray-600 text-white font-semibold">Abbrechen</button>
+                    <button onclick="submitBooking()" id="submitBookingBtn" class="py-2 px-4 rounded racing-btn">Anfrage senden</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Simulierte In-Memory-Daten
+        let coaches = [
+            { id: 1, name: "Dominik 'Speedy' Keller", specialty: "F1 & GT3 Setup", rate: 50, available: true, coachId: 1 },
+            { id: 2, name: "Lena 'DriftQueen' Müller", specialty: "Rallye & RWD Drifting", rate: 45, available: true, coachId: 2 },
+            { id: 3, name: "Tim 'Overtake' Schneider", specialty: "Ausdauerrennen (Endurance)", rate: 60, available: false, coachId: 3 },
+            { id: 4, name: "Sophie 'Apex' Weber", specialty: "Hotlap Optimierung", rate: 40, available: true, coachId: 4 },
+        ];
+
+        // Die ID 1 wird als der aktive Coach betrachtet, der die Slots verwaltet
+        const ACTIVE_COACH_ID = 1; 
+
+        let appointments = [
+            // Simulierter ausstehender Termin (Client-Anfrage)
+            { 
+                id: 101, 
+                coachId: 1, 
+                coachName: "Dominik 'Speedy' Keller", 
+                clientName: "Anna Herzog", 
+                date: new Date(Date.now() + 86400000 * 3).toISOString().substring(0, 16), // In 3 Tagen
+                status: "Pending" 
+            },
+            // Simulierter verfügbarer Slot (Coach-Angebot)
+            { 
+                id: 103, 
+                coachId: 1, 
+                coachName: "Dominik 'Speedy' Keller", 
+                clientName: "OPEN SLOT", 
+                date: new Date(Date.now() + 86400000 * 5).toISOString().substring(0, 16), // In 5 Tagen
+                status: "Available" 
+            },
+            // Simulierter akzeptierter Termin für Coach 2 (wird im Coach-View nicht angezeigt, da ACTIVE_COACH_ID = 1)
+            { 
+                id: 102, 
+                coachId: 2, 
+                coachName: "Lena 'DriftQueen' Müller", 
+                clientName: "Max Mustermann", 
+                date: new Date(Date.now() + 86400000).toISOString().substring(0, 16), // Morgen
+                status: "Accepted" 
+            },
+        ];
+
+        let selectedCoachId = null;
+        let currentView = 'client'; 
+        
+        // --- Hilfsfunktionen ---
+
+        /** Formatiert das Datum für die Anzeige */
+        const formatAppointmentTime = (isoString) => {
+            const date = new Date(isoString);
+            return date.toLocaleDateString('de-DE', {
+                year: 'numeric', month: '2-digit', day: '2-digit', 
+                hour: '2-digit', minute: '2-digit'
+            }) + ' Uhr';
+        };
+
+        // --- Hauptlogik ---
+
+        /** Wechselt zwischen Client- und Coach-Ansicht */
+        window.switchView = (view) => {
+            currentView = view;
+            const clientTab = document.getElementById('tabClient');
+            const coachTab = document.getElementById('tabCoach');
+            const clientViewEl = document.getElementById('clientView');
+            const coachViewEl = document.getElementById('coachView');
+
+            if (view === 'client') {
+                clientTab.classList.add('tab-active');
+                coachTab.classList.remove('tab-active');
+                clientViewEl.classList.remove('hidden');
+                coachViewEl.classList.add('hidden');
+                renderCoachList();
+            } else {
+                clientTab.classList.remove('tab-active');
+                coachTab.classList.add('tab-active');
+                clientViewEl.classList.add('hidden');
+                coachViewEl.classList.remove('hidden');
+                renderAppointmentList();
+            }
+            // Setze das Minimum-Datum für das neue Slot-Feld
+            const now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            document.getElementById('newSlotTime').min = now.toISOString().substring(0, 16);
+            document.getElementById('newSlotTime').value = now.toISOString().substring(0, 16);
+        };
+
+        /** Generiert HTML für eine Coach-Karte */
+        const createCoachCard = (coach) => {
+            const availability = coach.available 
+                ? '<span class="text-green-400 font-semibold">Verfügbar</span>'
+                : '<span class="text-yellow-400 font-semibold">Vorerst ausgebucht</span>';
+            const buttonHtml = coach.available 
+                ? `<button onclick="openModal(${coach.id})" class="mt-4 racing-btn py-2 px-4 rounded-lg w-full">Coaching buchen</button>`
+                : `<button class="mt-4 py-2 px-4 rounded-lg w-full bg-gray-600 text-gray-400 cursor-not-allowed" disabled>Nicht verfügbar</button>`;
+
+            return `
+                <div class="bg-gray-700 p-5 rounded-xl shadow-lg border-t-4 border-orange-500">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="text-xl font-extrabold text-white">${coach.name}</h3>
+                            <p class="text-sm text-gray-300 mt-1">${coach.specialty}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-2xl font-bold text-orange-400">${coach.rate} €<span class="text-sm text-gray-400">/h</span></p>
+                            <p class="text-xs mt-1">${availability}</p>
+                        </div>
+                    </div>
+                    ${buttonHtml}
+                </div>
+            `;
+        };
+
+        /** Rendert die Liste der Coaches in der Client-Ansicht */
+        const renderCoachList = () => {
+            const coachListEl = document.getElementById('coachList');
+            coachListEl.innerHTML = coaches.map(createCoachCard).join('');
+        };
+        
+        // --- Modal- und Buchungsfunktionen ---
+
+        /** Öffnet das Buchungs-Modal für einen Coach */
+        window.openModal = (coachId) => {
+            selectedCoachId = coachId;
+            const coach = coaches.find(c => c.id === coachId);
+            if (!coach) return;
+
+            document.getElementById('modalTitle').textContent = `Coaching buchen bei ${coach.name}`;
+            document.getElementById('modalRate').textContent = `${coach.rate} €/h`;
+            document.getElementById('bookingModal').classList.remove('hidden');
+
+            const now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            document.getElementById('appointmentTime').min = now.toISOString().substring(0, 16);
+            document.getElementById('appointmentTime').value = now.toISOString().substring(0, 16);
+        };
+
+        /** Schließt das Buchungs-Modal */
+        window.closeModal = () => {
+            document.getElementById('bookingModal').classList.add('hidden');
+            selectedCoachId = null;
+        };
+
+        /** Verarbeitet die Buchungsanfrage (simuliert) */
+        window.submitBooking = () => {
+            const clientName = document.getElementById('clientName').value.trim();
+            const appointmentTime = document.getElementById('appointmentTime').value;
+
+            if (!clientName || !appointmentTime) {
+                // Verwende alert() hier nicht, sondern simuliere eine Meldung
+                console.error('FEHLER: Bitte geben Sie Ihren Namen und einen gewünschten Zeitpunkt an.');
+                return;
+            }
+
+            const coach = coaches.find(c => c.id === selectedCoachId);
+            if (!coach) return;
+
+            const newAppointment = {
+                id: Date.now(),
+                coachId: selectedCoachId,
+                coachName: coach.name,
+                clientName: clientName,
+                date: appointmentTime,
+                status: "Pending"
+            };
+
+            appointments.push(newAppointment);
+            closeModal();
+            console.log(`Anfrage an Coach ${coach.name} erfolgreich gesendet!`);
+            
+            if (currentView === 'coach') {
+                renderAppointmentList();
+            }
+        };
+
+        // --- NEUE COACH FUNKTION: Verfügbarkeit anbieten ---
+
+        /** Fügt einen neuen verfügbaren Slot als Coach hinzu */
+        window.addAvailability = () => {
+            const slotTime = document.getElementById('newSlotTime').value;
+            const coach = coaches.find(c => c.id === ACTIVE_COACH_ID); // Der aktive Coach ist Coach 1
+
+            if (!slotTime) {
+                console.error('FEHLER: Bitte wählen Sie einen Zeitpunkt für Ihren neuen Slot.');
+                return;
+            }
+
+            const newSlot = {
+                id: Date.now() + 1, // Sicherstellen, dass die ID anders ist
+                coachId: ACTIVE_COACH_ID,
+                coachName: coach.name,
+                clientName: "OPEN SLOT", // Marker, dass es ein Angebot vom Coach ist
+                date: slotTime,
+                status: "Available"
+            };
+
+            appointments.push(newSlot);
+            console.log(`Neuer Slot für ${formatAppointmentTime(slotTime)} als verfügbar hinzugefügt.`);
+            
+            // Sofortige Aktualisierung der Liste
+            renderAppointmentList(); 
+        }
+
+        // --- Coach-Logik (Rendering und Statusänderung) ---
+
+        /** Generiert HTML für eine Termin-Karte */
+        const createAppointmnetCard = (appt) => {
+            let statusClasses = '';
+            let statusText = '';
+            let actionButtons = '';
+            let clientDisplay = appt.clientName === "OPEN SLOT" 
+                ? `<span class="italic text-gray-400">Offenes Coaching-Angebot</span>` 
+                : `<span class="font-bold text-white">${appt.clientName}</span>`;
+
+
+            switch (appt.status) {
+                case 'Pending':
+                    statusClasses = 'bg-yellow-800 text-yellow-300';
+                    statusText = 'Anfrage wartet';
+                    actionButtons = `
+                        <button onclick="updateAppointmentStatus(${appt.id}, 'Accepted')" class="py-1 px-3 rounded-lg bg-green-600 hover:bg-green-700 font-semibold text-sm">Akzeptieren</button>
+                        <button onclick="updateAppointmentStatus(${appt.id}, 'Rejected')" class="py-1 px-3 rounded-lg bg-red-600 hover:bg-red-700 font-semibold text-sm">Ablehnen</button>
+                    `;
+                    break;
+                case 'Accepted':
+                    statusClasses = 'bg-green-800 text-green-300';
+                    statusText = 'Bestätigt';
+                    break;
+                case 'Rejected':
+                    statusClasses = 'bg-red-800 text-red-300';
+                    statusText = 'Abgelehnt';
+                    break;
+                case 'Available':
+                    statusClasses = 'bg-indigo-800 text-indigo-300 border-2 border-indigo-500';
+                    statusText = 'Dein Angebot';
+                    clientDisplay = `<span class="italic text-indigo-300 font-semibold">Ihr offener Slot</span>`;
+                    actionButtons = `
+                        <button onclick="updateAppointmentStatus(${appt.id}, 'Remove')" class="py-1 px-3 rounded-lg bg-gray-500 hover:bg-gray-600 font-semibold text-sm">Löschen</button>
+                    `;
+                    break;
+                default:
+                    statusClasses = 'bg-gray-800 text-gray-300';
+                    statusText = 'Unbekannt';
+            }
+
+            return `
+                <div class="bg-gray-700 p-5 rounded-xl shadow-lg flex justify-between items-center transition duration-150 ${appt.status === 'Available' ? 'border-t-4 border-indigo-500' : 'border-t-4 border-yellow-500'}">
+                    <div>
+                        <p class="text-lg font-bold text-white">${clientDisplay}</p>
+                        <p class="text-sm text-gray-300 mt-1">
+                            Zeitpunkt: <span class="font-semibold text-orange-400">${formatAppointmentTime(appt.date)}</span>
+                        </p>
+                    </div>
+                    <div class="flex flex-col items-end space-y-2">
+                        <span class="py-1 px-3 text-xs font-bold rounded-full ${statusClasses}">${statusText}</span>
+                        <div class="flex space-x-2">
+                            ${actionButtons}
+                        </div>
+                    </div>
+                </div>
+            `;
+        };
+
+        /** Rendert die Liste der Terminanfragen in der Coach-Ansicht */
+        const renderAppointmentList = () => {
+            const appointmentListEl = document.getElementById('appointmentList');
+            
+            // Filtert Termine nur für den aktiven Coach (Coach 1 in diesem Prototyp)
+            const coachAppointments = appointments.filter(appt => appt.coachId === ACTIVE_COACH_ID);
+
+            // Sortiere Termine: Pending zuerst, dann Available, dann nach Datum
+            const sortedAppointments = coachAppointments.sort((a, b) => {
+                const statusOrder = { 'Pending': 1, 'Available': 2, 'Accepted': 3, 'Rejected': 4 };
+                if (statusOrder[a.status] !== statusOrder[b.status]) {
+                    return statusOrder[a.status] - statusOrder[b.status];
+                }
+                return new Date(a.date) - new Date(b.date);
+            });
+
+            if (sortedAppointments.length === 0) {
+                appointmentListEl.innerHTML = '<p class="text-gray-400 p-4 border border-gray-700 rounded-lg">Keine Termine, Anfragen oder Angebote vorhanden.</p>';
+            } else {
+                appointmentListEl.innerHTML = sortedAppointments.map(createAppointmnetCard).join('');
+            }
+        };
+
+        /** Ändert den Status eines Termins (simuliert) */
+        window.updateAppointmentStatus = (appointmentId, newStatus) => {
+            const index = appointments.findIndex(appt => appt.id === appointmentId);
+            if (index > -1) {
+                if (newStatus === 'Remove') {
+                    // Slot entfernen
+                    appointments.splice(index, 1);
+                    console.log(`Slot/Anfrage ${appointmentId} wurde entfernt.`);
+                } else {
+                    // Status ändern
+                    appointments[index].status = newStatus;
+                    console.log(`Termin von ${appointments[index].clientName} wurde als ${newStatus} markiert.`);
+                }
+                
+                renderAppointmentList(); // Liste neu rendern
+            }
+        };
+
+        // Initialisierung
+        document.addEventListener('DOMContentLoaded', () => {
+            renderCoachList();
+        });
+    </script>
+</body>
+</html>
