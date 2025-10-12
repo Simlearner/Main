@@ -46,16 +46,22 @@
                                 Pos
                             </th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                                Bestzeit
+                                Laptime
                             </th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                                Name(n)
+                                Name(s)
                             </th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider hidden sm:table-cell">
-                                Steam Profil
+                                Steam Profile
                             </th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider hidden md:table-cell">
-                                Datum (UTC)
+                                Date (UTC)
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                            Car
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                            Class
                             </th>
                         </tr>
                     </thead>
@@ -154,12 +160,18 @@
                 // best_lap_date_utc (Spalte E)
                 const bestLapDateUtc = cells[4]?.v || 'Unbekannt';
 
+                const car = cells[6]?.v || 'Unbekannt';
+                
+                const driverClass = cells[7]?.v || 'Unbekannt';
+
                 return {
                     steam_id: String(steamId),
                     best_lap_ms: bestLapMs,
                     best_lap_display: bestLapDisplay,
                     names_used: namesUsedRaw.split(',').map(n => n.trim()).filter(n => n.length > 0),
-                    best_lap_date_utc: bestLapDateUtc
+                    best_lap_date_utc: bestLapDateUtc,
+                    car: car,
+                    driver_class: driverClass
                 };
             }).filter(driver => driver.steam_id); // Entferne leere Zeilen
 
@@ -215,8 +227,8 @@
 
                     let bestTimeClass = 'text-white font-mono';
                     if (index === 0) bestTimeClass = 'text-yellow-400 font-extrabold text-lg'; // Gold
-                    else if (index === 1) bestTimeClass = 'text-gray-400 font-bold'; // Silber
-                    else if (index === 2) bestTimeClass = 'text-yellow-600 font-semibold'; // Bronze
+                    else if (index === 1) bestTimeClass = 'text-gray-400 font-extrabold text-lg'; // Silber
+                    else if (index === 2) bestTimeClass = 'text-yellow-600 font-extrabold text-lg'; // Bronze
                     else bestTimeClass = 'text-green-500 font-mono';
 
                     // Erstelle die Zellen (td)
@@ -239,6 +251,12 @@
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-400 hidden md:table-cell">
                             ${formatDateTime(driver.best_lap_date_utc)}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                            ${driver.car}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                            ${driver.driver_class}
                         </td>
                     `;
                     driverList.appendChild(row);
