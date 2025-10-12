@@ -67,13 +67,31 @@
         </div>
         
         <!-- Second Navigation Row for Big Links -->
-        <div class="max-w-7xl mx-auto w-full mt-6 md:mt-8 lg:mt-10 flex flex-wrap justify-start md:justify-end items-center gap-6 md:gap-10">
-            <a href="general-advice.html" class="inline-block font-bold text-gray-400 hover:text-white text-4xl transition-colors duration-300">
+        <style>
+            /* Fügt das Trennzeichen "|" nach jedem Link (außer dem letzten) hinzu */
+            .group-link-divider:not(:last-child)::after {
+                content: '|';
+                margin-left: 2.5rem; /* Etwas Abstand zum Link */
+                margin-right: 2.5rem; /* Etwas Abstand zum nächsten Link */
+                color: #4b5563; /* Eine dunklere Farbe (grau-600) für bessere Sichtbarkeit */
+                font-weight: 400; /* Standard-Schriftgewicht */
+            }
+            /* Stellt sicher, dass das Trennzeichen nicht in den Hover-Effekt des Links gerät */
+            .group-link-divider:not(:last-child):hover::after {
+                color: #4b5563 !important;
+            }
+        </style>
+        
+        <div class="max-w-7xl mx-auto w-full mt-6 md:mt-8 lg:mt-10 flex flex-wrap justify-between items-center text-center">
+            
+            <a href="general-advice.html" class="group-link-divider inline-block font-bold text-gray-400 hover:text-white text-4xl transition-colors duration-300">
                 General Setup Advice
             </a>
-            <a href="setup-files.html" class="inline-block font-bold text-gray-400 hover:text-white text-4xl transition-colors duration-300">
+            
+            <a href="setup-files.html" class="group-link-divider inline-block font-bold text-gray-400 hover:text-white text-4xl transition-colors duration-300">
                 Setup Files
             </a>
+            
             <a href="results.html" class="inline-block font-bold text-gray-400 hover:text-white text-4xl transition-colors duration-300">
                 Laptimes & Driver Ranking
             </a>
@@ -240,6 +258,7 @@
 
 </body>
 </html>
+
 
 
 
