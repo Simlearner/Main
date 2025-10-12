@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ACC Server Bestenliste (Google Sheets)</title>
+    <!-- Tailwind CSS laden -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0d1117; /* Dunkler Hintergrund */
+        }
+        .table-container {
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8 min-h-screen">
+
+    <div id="app" class="max-w-6xl mx-auto">
+        <header class="text-center mb-10 p-6 bg-gray-800 rounded-xl shadow-2xl">
+            <h1 class="text-3xl sm:text-4xl font-extrabold text-white mb-2">
+                ACC Server Bestenliste
+            </h1>
+            <p class="text-sm sm:text-base text-gray-400">
+                Datenquelle: Google Sheets (muss öffentlich veröffentlicht sein)
+            </p>
+        </header>
+
+        <div id="loading" class="text-center text-blue-400 font-semibold mt-12">
+            Lade Fahrerdaten von Google Sheets...
+        </div>
+
+        <div id="error-message" class="hidden p-4 bg-red-800 text-white rounded-lg shadow-md text-center">
+            Fehler beim Laden der Daten. Stellen Sie sicher, dass die **Spreadsheet ID** korrekt ist und das Dokument **öffentlich im Web veröffentlicht** wurde.
+        </div>
+        
+        <div id="data-container" class="hidden">
+            <div class="table-container bg-gray-900 rounded-xl shadow-lg border border-gray-700">
+                <table class="min-w-full divide-y divide-gray-700">
+                    <thead class="bg-gray-800">
+                        <tr>
+                            <th class="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                                Pos
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                                Bestzeit
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                                Name(n)
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider hidden sm:table-cell">
+                                Steam Profil
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider hidden md:table-cell">
+                                Datum (UTC)
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody id="driver-list" class="bg-gray-900 divide-y divide-gray-700 text-white">
+                        <!-- Daten werden hier per JavaScript eingefügt -->
+                    </tbody>
+                </table>
+            </div>
+
+            <footer class="mt-8 text-center text-sm text-gray-500">
+                <p>Zuletzt geladen: <span id="last-updated">Unbekannt</span></p>
+            </footer>
+        </div>
+    </div>
+
+    <script>
+        // *** WICHTIG: ERSETZEN SIE DIESEN PLATZHALTER DURCH IHRE ECHTE GOOGLE SPREADSHEET ID ***
+        const SPREADSHEET_ID = '1Qx5f8jK_T9y_zW0C7xP3uE4vG6eO2lI-r_0hX-a_1s'; // Beispiel-ID, BITTE ERSETZEN
+        const SHEETS_API_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json&t=${new Date().getTime()}`;
+
+        const driverList = document.getElementById('driver-list');
+        const loadingElement = document.getElementById('loading');
+        const dataContainer = document.getElementById('data-container');
+        const errorMessage = document.getElementById('error-message');
+        const lastUpdatedElement = document.getElementById('last-updated');
+
+        /**
+         * Konvertiert Millisekunden in das Format M:SS.mmm (z.B. 1:45.123).
+         * Diese Funktion ist nur für eine Fallback-Anzeige, da die Zeit 
+         * idealerweise bereits formatiert im Sheet stehen sollte.
+         * @param {number} ms - Rundenzeit in Millisekunden.
+         * @returns {string} Formatierte Rundenzeit.
+         */
+        function formatLapTime(ms) {
+            if (!ms || ms === 2147483647) return 'N/A';
+            const totalSeconds = Math.floor(ms / 1000);
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = totalSeconds % 60;
+            const milliseconds = ms % 1000;
+            
+            return `${minutes}:${String(seconds).padStart(2, '0')}.${String(milliseconds).padStart(3, '0')}`;
+        }
+
+        /**
+         * Formatiert das UTC-Datum in ein lokales, lesbares Format.
+         * @param {string} utcDateString - Das Datum im ISO 8601 Format oder ein einfacher String.
+         * @returns {string} Lokales Datum und Uhrzeit.
+         */
+        function formatDateTime(utcDateString) {
+            if (!utcDateString || utcDateString === 'Unbekannt') return 'Unbekannt';
+            try {
+                // Versucht, das Datum als ISO-String oder einfachen String zu parsen
+                const date = new Date(utcDateString.replace('Z', ''));
+                if (isNaN(date)) return utcDateString; // Wenn ungültig, gib den Originalstring zurück
+
+                const options = { 
+                    year: 'numeric', 
+                    month: '2-digit', 
+                    day: '2-digit', 
+                    hour: '2-digit', 
+                    minute: '2-digit', 
+                    timeZoneName: 'short' 
+                };
+                return date.toLocaleDateString('de-DE', options);
+            } catch (e) {
+                return 'Fehlerhaftes Datum';
+            }
+        }
+        
+        /**
+         * Parst das rohe JSON von der Google Visualisation API und konvertiert es 
+         * in das von unserer App erwartete Format.
+         * @param {object} gvizData - Die rohe Datenstruktur der Google API.
+         * @returns {Array<object>} Eine Liste formatierter Fahrerobjekte.
+         */
+        function parseGoogleSheetData(gvizData) {
+            const dataTable = gvizData.table;
+            if (!dataTable || !dataTable.rows || dataTable.cols.length === 0) return [];
+            
+            // Annahme der Spaltenreihenfolge: A=steam_id, B=best_lap_ms, C=best_lap_display, D=names_used, E=best_lap_date_utc
+            const data = dataTable.rows.map(row => {
+                const cells = row.c;
+                
+                // Extrahiere Werte (wobei c[i].v der Wert ist) und behandle leere Zellen
+                const steamId = cells[0]?.v || '';
+                
+                // Wir nehmen an, dass best_lap_ms (Spalte B) eine Zahl ist
+                const bestLapMs = cells[1]?.v || 999999999; 
+                
+                // best_lap_display (Spalte C) kann direkt übernommen werden (z.B. 1:45.123)
+                const bestLapDisplay = cells[2]?.v || formatLapTime(bestLapMs);
+                
+                // names_used (Spalte D)
+                const namesUsedRaw = cells[3]?.v || '';
+                
+                // best_lap_date_utc (Spalte E)
+                const bestLapDateUtc = cells[4]?.v || 'Unbekannt';
+
+                return {
+                    steam_id: String(steamId),
+                    best_lap_ms: bestLapMs,
+                    best_lap_display: bestLapDisplay,
+                    names_used: namesUsedRaw.split(',').map(n => n.trim()).filter(n => n.length > 0),
+                    best_lap_date_utc: bestLapDateUtc
+                };
+            }).filter(driver => driver.steam_id); // Entferne leere Zeilen
+
+            // Sortiere die Daten (da die Sheets API keine einfache Sortierung garantiert)
+            data.sort((a, b) => a.best_lap_ms - b.best_lap_ms);
+            
+            return data;
+        }
+
+
+        /**
+         * Lädt die Google Sheet Daten und rendert die Tabelle.
+         */
+        async function loadAndRender() {
+            loadingElement.classList.remove('hidden');
+            dataContainer.classList.add('hidden');
+            errorMessage.classList.add('hidden');
+
+            try {
+                // Verwende fetch, da die Google API den CORS-Header korrekt setzt
+                const response = await fetch(SHEETS_API_URL);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP-Fehler! Status: ${response.status}`);
+                }
+
+                // Die Google API liefert einen String, der mit "google.visualization.Query.setResponse" beginnt
+                const text = await response.text();
+                
+                // Entferne das Callback-Wrapping und parse den inneren JSON-Teil
+                const jsonStart = text.indexOf('{');
+                const jsonEnd = text.lastIndexOf('}');
+                const jsonString = text.substring(jsonStart, jsonEnd + 1);
+                
+                const gvizResponse = JSON.parse(jsonString);
+
+                if (gvizResponse.status !== 'ok') {
+                     throw new Error(`API Status Fehler: ${gvizResponse.errors ? gvizResponse.errors.map(e => e.message).join('; ') : 'Unbekannter Fehler'}`);
+                }
+
+                const driverData = parseGoogleSheetData(gvizResponse);
+
+                // Leere die Liste vor dem Rendern
+                driverList.innerHTML = '';
+
+                driverData.forEach((driver, index) => {
+                    const row = document.createElement('tr');
+                    
+                    const namesString = driver.names_used ? driver.names_used.join(', ') : 'Unbekannt';
+
+                    const rowClass = index % 2 === 0 ? 'bg-gray-800 hover:bg-gray-700' : 'bg-gray-900 hover:bg-gray-800';
+                    row.className = rowClass + ' transition duration-150 ease-in-out';
+
+                    let bestTimeClass = 'text-white font-mono';
+                    if (index === 0) bestTimeClass = 'text-yellow-400 font-extrabold text-lg'; // Gold
+                    else if (index === 1) bestTimeClass = 'text-gray-400 font-bold'; // Silber
+                    else if (index === 2) bestTimeClass = 'text-yellow-600 font-semibold'; // Bronze
+                    else bestTimeClass = 'text-green-500 font-mono';
+
+                    // Erstelle die Zellen (td)
+                    row.innerHTML = `
+                        <td class="px-3 py-4 whitespace-nowrap text-sm text-gray-400">
+                            ${index + 1}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm ${bestTimeClass}">
+                            ${driver.best_lap_display}
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-300 max-w-xs truncate">
+                            ${namesString}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm hidden sm:table-cell">
+                            <a href="https://steamcommunity.com/profiles/${driver.steam_id}" target="_blank" 
+                               class="text-blue-500 hover:text-blue-400 font-medium transition duration-150 ease-in-out"
+                               title="SteamID: ${driver.steam_id}">
+                               Profil ansehen
+                            </a>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-400 hidden md:table-cell">
+                            ${formatDateTime(driver.best_lap_date_utc)}
+                        </td>
+                    `;
+                    driverList.appendChild(row);
+                });
+
+                lastUpdatedElement.textContent = formatDateTime(new Date().toISOString());
+
+                loadingElement.classList.add('hidden');
+                dataContainer.classList.remove('hidden');
+
+            } catch (error) {
+                console.error("Daten-Rendering-Fehler:", error);
+                loadingElement.classList.add('hidden');
+                errorMessage.classList.remove('hidden');
+            }
+        }
+
+        // Starte das Laden und Rendern der Daten
+        loadAndRender();
+
+        // Automatische Aktualisierung der Tabelle alle 5 Minuten (falls Sheets schneller aktualisiert wird)
+        setInterval(loadAndRender, 300000); 
+
+    </script>
+
+</body>
+</html>
