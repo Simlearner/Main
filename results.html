@@ -164,8 +164,10 @@
                 const cells = row.c;
                 
                 // Extrahiere Werte (wobei c[i].v der Wert ist) und behandle leere Zellen
-                const steamId = cells[0]?.v || '';
-                
+                //const steamId = cells[0]?.v || '';
+                const steamIdRaw = String(cells[0]?.v || '');
+                const steamId = steamIdRaw.startsWith("'") ? steamIdRaw.substring(1) : steamIdRaw; 
+                               
                 // Wir nehmen an, dass best_lap_ms (Spalte B) eine Zahl ist
                 const bestLapMs = cells[1]?.v || 999999999; 
                 
