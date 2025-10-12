@@ -72,14 +72,14 @@
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider hidden md:table-cell">
                                 Date (UTC)
                             </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider hidden sm:table-cell">
+                                Session Type
+                            </th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
                                 Car
                             </th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
                                 Class
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider hidden sm:table-cell">
-                                Session Type
                             </th>
                         </tr>
                     </thead>
@@ -190,6 +190,7 @@
                     best_lap_display: bestLapDisplay,
                     names_used: namesUsedRaw.split(',').map(n => n.trim()).filter(n => n.length > 0),
                     best_lap_date_utc: bestLapDateUtc,
+                    session_type: sessionType,
                     car: car,
                     driver_class: driverClass
                 };
@@ -274,14 +275,14 @@
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-400 hidden md:table-cell">
                             ${formatDateTime(driver.best_lap_date_utc)}
                         </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300 hidden sm:table-cell">
+                            ${driver.session_type}
+                        </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
                             ${driver.car}
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
                             ${driver.driver_class}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300 hidden sm:table-cell">
-                            ${driver.session_type}
                         </td>
                     `;
                     driverList.appendChild(row);
