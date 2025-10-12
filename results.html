@@ -57,28 +57,28 @@
                 <table class="min-w-full divide-y divide-gray-700">
                     <thead class="bg-gray-800">
                         <tr>
-                            <th class="px-3 py-3 text-center text-lg font-bold text-gray-300 uppercase tracking-wider">
+                            <th class="px-2 py-3 text-center text-lg font-bold text-gray-300 uppercase tracking-wider">
                                 Pos
                             </th>
-                            <th class="px-3 py-3 text-center text-lg font-bold text-gray-300 uppercase tracking-wider">
+                            <th class="px-2 py-3 text-center text-lg font-bold text-gray-300 uppercase tracking-wider">
                                 Laptime
                             </th>
-                            <th class="px-3 py-3 text-center text-lg font-bold text-gray-300 uppercase tracking-wider">
+                            <th class="px-2 py-3 text-center text-lg font-bold text-gray-300 uppercase tracking-wider">
                                 Name(s)
                             </th>
-                            <th class="px-3 py-3 text-center text-lg font-bold text-gray-300 uppercase tracking-wider hidden sm:table-cell">
+                            <th class="px-2 py-3 text-center text-lg font-bold text-gray-300 uppercase tracking-wider hidden sm:table-cell">
                                 Steam Profile
                             </th>
-                            <th class="px-3 py-3 text-center text-lg font-bold text-gray-300 uppercase tracking-wider hidden md:table-cell">
+                            <th class="px-2 py-3 text-center text-lg font-bold text-gray-300 uppercase tracking-wider hidden md:table-cell">
                                 Date (UTC)
                             </th>
-                            <th class="px-3 py-3 text-center text-lg font-bold text-gray-300 uppercase tracking-wider hidden sm:table-cell">
+                            <th class="px-2 py-3 text-center text-lg font-bold text-gray-300 uppercase tracking-wider hidden sm:table-cell">
                                 Session Type
                             </th>
-                            <th class="px-3 py-3 text-center text-lg font-bold text-gray-300 uppercase tracking-wider">
+                            <th class="px-2 py-3 text-center text-lg font-bold text-gray-300 uppercase tracking-wider">
                                 Car
                             </th>
-                            <th class="px-3 py-3 text-center text-lg font-bold text-gray-300 uppercase tracking-wider">
+                            <th class="px-2 py-3 text-center text-lg font-bold text-gray-300 uppercase tracking-wider">
                                 Class
                             </th>
                         </tr>
@@ -256,32 +256,32 @@
 
                     // Erstelle die Zellen (td)
                     row.innerHTML = `
-                        <td class="px-3 py-4 whitespace-nowrap text-center text-sm text-gray-400">
+                        <td class="px-2 py-4 whitespace-nowrap text-center text-sm text-gray-400">
                             ${index + 1}
                         </td>
-                        <td class="px-3 py-4 whitespace-nowrap text-center text-sm ${bestTimeClass}">
+                        <td class="px-2 py-4 whitespace-nowrap text-center text-sm ${bestTimeClass}">
                             ${driver.best_lap_display}
                         </td>
-                        <td class="px-3 py-4 text-sm text-center text-gray-300 max-w-xs truncate">
+                        <td class="px-2 py-4 text-sm text-center text-gray-300 max-w-xs truncate">
                             ${namesString}
                         </td>
-                        <td class="px-3 py-4 whitespace-nowrap text-center text-sm hidden sm:table-cell">
+                        <td class="px-2 py-4 whitespace-nowrap text-center text-sm hidden sm:table-cell">
                             <a href="https://steamcommunity.com/profiles/${driver.steam_id}" target="_blank" 
                                class="text-blue-500 hover:text-blue-400 font-medium transition duration-150 ease-in-out"
                                title="SteamID: ${driver.steam_id}">
                                View Profile
                             </a>
                         </td>
-                        <td class="px-3 py-4 whitespace-nowrap text-center text-sm text-gray-400 hidden md:table-cell">
+                        <td class="px-2 py-4 whitespace-nowrap text-center text-sm text-gray-400 hidden md:table-cell">
                             ${formatDateTime(driver.best_lap_date_utc)}
                         </td>
-                        <td class="px-3 py-4 whitespace-nowrap text-center text-sm text-gray-300 hidden sm:table-cell">
+                        <td class="px-2 py-4 whitespace-nowrap text-center text-sm text-gray-300 hidden sm:table-cell">
                             ${driver.session_type}
                         </td>
-                        <td class="px-3 py-4 whitespace-nowrap text-center text-sm text-gray-300">
+                        <td class="px-2 py-4 whitespace-nowrap text-center text-sm text-gray-300">
                             ${driver.car}
                         </td>
-                        <td class="px-3 py-4 whitespace-nowrap text-center text-sm text-gray-300">
+                        <td class="px-2 py-4 whitespace-nowrap text-center text-sm text-gray-300">
                             ${driver.driver_class}
                         </td>
                     `;
