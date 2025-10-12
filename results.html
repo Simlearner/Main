@@ -73,10 +73,13 @@
                                 Date (UTC)
                             </th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                            Car
+                                Car
                             </th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                            Class
+                                Class
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider hidden sm:table-cell">
+                                Session Type
                             </th>
                         </tr>
                     </thead>
@@ -179,6 +182,8 @@
                 
                 const driverClass = cells[7]?.v || 'Unbekannt';
 
+                const sessionType = cells[5]?.v || 'Unbekannt'; 
+
                 return {
                     steam_id: String(steamId),
                     best_lap_ms: bestLapMs,
@@ -274,6 +279,9 @@
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
                             ${driver.driver_class}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300 hidden sm:table-cell">
+                            ${driver.session_type}
                         </td>
                     `;
                     driverList.appendChild(row);
