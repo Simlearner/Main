@@ -34,19 +34,22 @@
     <!-- Header & Navigation -->
     <!-- The header is now a flex column to stack the navigation rows -->
     <header class="py-6 px-4 md:px-8 lg:px-16 fixed w-full z-50 bg-gray-900 bg-opacity-80 backdrop-blur-sm transition-all duration-300 flex flex-col">
+    
         <!-- Top Navigation Row -->
-        <nav class="flex justify-between items-center max-w-7xl mx-auto w-full mb-1">
-            <!-- Logo with a link to the top of the page -->
+        <nav class="flex justify-between items-center max-w-7xl mx-auto w-full mb-4">
+            <!-- Logo -->
             <a href="#" class="flex-shrink-0">
-                <!-- Updated logo URL to a raw GitHub link for better reliability -->
-                <img src="https://raw.githubusercontent.com/Simlearner/Main/main/assets/pictures/image01.jpg" alt="SimLearner Logo" class="h-20 rounded-lg shadow-lg transition-all duration-300">
+                <img src="https://raw.githubusercontent.com/Simlearner/Main/main/assets/pictures/image01.jpg" 
+                     alt="SimLearner Logo" class="h-20 rounded-lg shadow-lg transition-all duration-300">
             </a>
+    
             <div class="hidden md:flex space-x-8">
                 <a href="#about" class="text-gray-300 hover:text-white transition-colors duration-300">About</a>
                 <a href="#focus" class="text-gray-300 hover:text-white transition-colors duration-300">Our Focus</a>
                 <a href="#how-it-works" class="text-gray-300 hover:text-white transition-colors duration-300">How it Works</a>
                 <a href="#contact" class="text-gray-300 hover:text-white transition-colors duration-300">Book Session</a>
             </div>
+    
             <!-- Mobile Menu Button -->
             <button id="mobile-menu-button" class="md:hidden text-gray-300 hover:text-white">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -54,20 +57,20 @@
                 </svg>
             </button>
         </nav>
+    
         <!-- Mobile Menu -->
-        <div id="mobile-menu" class="hidden md:hidden mt-4 text-center">
+        <div id="mobile-menu" class="hidden md:hidden mt-4 text-center space-y-2">
             <a href="#about" class="block py-2 text-gray-300 hover:text-white">About</a>
             <a href="#focus" class="block py-2 text-gray-300 hover:text-white">Our Focus</a>
             <a href="#how-it-works" class="block py-2 text-gray-300 hover:text-white">How it Works</a>
             <a href="#contact" class="block py-2 text-gray-300 hover:text-white">Book Session</a>
         </div>
         
-        <!-- Second Navigation Row for General Setup Advice -->
-        <div class="max-w-7xl mx-auto w-full pr-4 md:pr-16 lg:pr-16 flex justify-end items-center space-x-4">
+        <!-- Second Navigation Row for Big Links -->
+        <div class="max-w-7xl mx-auto w-full mt-6 md:mt-8 lg:mt-10 flex flex-wrap justify-start md:justify-end items-center gap-6 md:gap-10">
             <a href="general-advice.html" class="inline-block font-bold text-gray-400 hover:text-white text-4xl transition-colors duration-300">
                 General Setup Advice
             </a>
-            <!-- New link for setup files -->
             <a href="setup-files.html" class="inline-block font-bold text-gray-400 hover:text-white text-4xl transition-colors duration-300">
                 Setup Files
             </a>
@@ -237,6 +240,7 @@
 
 </body>
 </html>
+
 
 
 
