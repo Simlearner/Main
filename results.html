@@ -178,12 +178,12 @@
                 // best_lap_date_utc (Spalte E)
                 const bestLapDateUtc = cells[4]?.v || 'Unbekannt';
 
+                const sessionType = cells[5]?.v || 'Unbekannt'; 
+
                 const car = cells[6]?.v || 'Unbekannt';
                 
                 const driverClass = cells[7]?.v || 'Unbekannt';
-
-                const sessionType = cells[5]?.v || 'Unbekannt'; 
-
+        
                 return {
                     steam_id: String(steamId),
                     best_lap_ms: bestLapMs,
