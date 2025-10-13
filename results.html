@@ -479,6 +479,18 @@
             chip.appendChild(removeIcon);
             container.appendChild(chip);
 
+            // Zeit unter dem Fahrernamen anzeigen
+            const driverEntries = allDriverData.filter(d =>
+                d.name.split(',').map(n => n.trim()).some(n => n === driver.name)
+            );
+            const bestMs = driverEntries.length > 0 ? Math.min(...driverEntries.map(d => d.time)) : null;
+            const bestFormatted = bestMs ? formatLapTime(bestMs) : '-';
+            
+            const timeElement = document.createElement('div');
+            timeElement.className = 'text-gray-300 text-xs mt-1';
+            timeElement.textContent = bestFormatted;
+            container.appendChild(timeElement);
+
             const legendItem = document.createElement('span');
             legendItem.className = 'mr-2 text-sm text-gray-300';
             legendItem.innerHTML = `<span class="inline-block w-4 h-2 mr-1 rounded" style="background-color:${driver.color};"></span> ${driver.name}`;
@@ -619,6 +631,13 @@
             // small label near top
             ctx.fillStyle = d.color; ctx.font = '12px Inter, sans-serif'; ctx.textAlign = 'center';
             ctx.fillText(d.name, x, padding.top - 2);
+            
+            // Bestzeit unter dem Strich anzeigen
+            ctx.fillStyle = '#d1d5db';
+            ctx.font = '11px Inter, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(msToTime(d.bestMs), x, chartCanvas.height - padding.bottom + 16);
+            
         });
     }
 
