@@ -381,7 +381,7 @@
             const q1_temp = quantile(cleanedTimes, 0.25);
             const q3_temp = quantile(cleanedTimes, 0.75);
             const iqr = q3_temp - q1_temp;
-            const upperFence = q3_temp + 2 * iqr;
+            const upperFence = q3_temp + 3 * iqr;
             const cleanedByIQR = cleanedTimes.filter(t => t <= upperFence);
             outliersRemovedCount = initialCount - cleanedByIQR.length;
             cleanedTimes = cleanedByIQR;
