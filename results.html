@@ -585,7 +585,7 @@
         // X labels: min and max and median
         ctx.textAlign = 'left'; ctx.fillStyle = '#9ca3af'; ctx.fillText(msToTime(minTime), padding.left, chartCanvas.height - padding.bottom + 18);
         ctx.textAlign = 'right'; ctx.fillText(msToTime(maxTime), chartCanvas.width - padding.right, chartCanvas.height - padding.bottom + 18);
-        ctx.textAlign = 'center'; ctx.fillText(`Median: ${msToTime(q50)}`, xToPx(q50), chartCanvas.height - padding.bottom + 34);
+        ctx.textAlign = 'center'; ctx.fillText(`Median: ${msToTime(q50)}`, xToPx(q50), chartCanvas.height - padding.bottom + 18);
 
         // Draw curve function
         const drawCurve = (distribution, color, isFill) => {
@@ -636,7 +636,7 @@
             ctx.fillStyle = '#d1d5db';
             ctx.font = '16px Inter, sans-serif';
             ctx.textAlign = 'center';
-            ctx.fillText(msToTime(d.bestMs), x, chartCanvas.height - padding.bottom - 16);
+            ctx.fillText(msToTime(d.bestMs), x, chartCanvas.height - padding.bottom + 36);
             
         });
     }
