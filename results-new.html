@@ -353,7 +353,8 @@
         const statsTable = document.getElementById('statsTable');
         const chartArea = document.getElementById('chartArea');
         const driverSearchArea = document.getElementById('driverSearchArea');
-        const removeOutliersChecked = document.getElementById('removeOutliers').checked;
+        const removeOutliersElement = document.getElementById('removeOutliers');
+        const removeOutliersChecked = removeOutliersElement ? removeOutliersElement.checked : false;
 
         statusMessage.textContent = '';
         statusMessage.classList.add('hidden');
