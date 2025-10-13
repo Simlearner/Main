@@ -634,9 +634,9 @@
             
             // Bestzeit unter dem Strich anzeigen
             ctx.fillStyle = '#d1d5db';
-            ctx.font = '11px Inter, sans-serif';
+            ctx.font = '16px Inter, sans-serif';
             ctx.textAlign = 'center';
-            ctx.fillText(msToTime(d.bestMs), x, chartCanvas.height - padding.bottom + 16);
+            ctx.fillText(msToTime(d.bestMs), x, chartCanvas.height - padding.bottom - 16);
             
         });
     }
