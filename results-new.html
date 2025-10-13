@@ -41,17 +41,17 @@
             <h2 class="text-2xl font-bold text-white mb-3">Laptime-Distributionanalysis & Quantiles</h2>
             <p class="text-sm text-gray-300 mb-4">Data will be read from Table (Laptime in ms and Name(s)).</p>
 
-            <div class="flex flex-col md:flex-row md:items-center gap-4">
+            <!--<div class="flex flex-col md:flex-row md:items-center gap-4">
                 <label class="flex items-center gap-2 bg-red-50/5 p-3 rounded-lg border border-red-800/20">
                     <input type="checkbox" id="removeOutliers" checked class="h-5 w-5" />
                     <span class="text-sm text-gray-200">Remove slow outliers (Q3 + 1.5 × IQR)</span>
                 </label>
 
-                <!--<button id="analyzeButton" class="ml-auto bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-indigo-700"
+                <button id="analyzeButton" class="ml-auto bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-indigo-700"
                         onclick="analyzeLaptimesFromSheet()">
                     Daten analysieren & visualisieren
-                /button>-->
-            </div>
+                /button>
+            </div> -->
 
             <div id="statusMessage" class="text-red-400 font-medium mt-4 hidden"></div>
 
@@ -375,21 +375,21 @@
         let cleanedTimes = removeSinglePointOutliers(validMsTimes);
 
         // 3. Optional: Entferne langsame Ausreißer via IQR
-        let outliersRemovedCount = initialCount - cleanedTimes.length;
-        if (removeOutliersChecked && cleanedTimes.length >= 4) {
-            const q1_temp = quantile(cleanedTimes, 0.25);
-            const q3_temp = quantile(cleanedTimes, 0.75);
-            const iqr = q3_temp - q1_temp;
-            const upperFence = q3_temp + 1.5 * iqr;
-            const cleanedByIQR = cleanedTimes.filter(t => t <= upperFence);
-            outliersRemovedCount = initialCount - cleanedByIQR.length;
-            cleanedTimes = cleanedByIQR;
-            if (cleanedTimes.length < 3) {
-                document.getElementById('statusMessage').textContent = `ACHTUNG: Nach Entfernen von ${outliersRemovedCount} Ausreißern zu wenig Zeiten übrig.`;
-                document.getElementById('statusMessage').classList.remove('hidden');
-                return;
-            }
-        }
+        // let outliersRemovedCount = initialCount - cleanedTimes.length;
+        //if (removeOutliersChecked && cleanedTimes.length >= 4) {
+          //  const q1_temp = quantile(cleanedTimes, 0.25);
+            //const q3_temp = quantile(cleanedTimes, 0.75);
+            //const iqr = q3_temp - q1_temp;
+            //const upperFence = q3_temp + 1.5 * iqr;
+            //const cleanedByIQR = cleanedTimes.filter(t => t <= upperFence);
+            //outliersRemovedCount = initialCount - cleanedByIQR.length;
+            //cleanedTimes = cleanedByIQR;
+            //if (cleanedTimes.length < 3) {
+              //  document.getElementById('statusMessage').textContent = `ACHTUNG: Nach Entfernen von ${outliersRemovedCount} Ausreißern zu wenig Zeiten übrig.`;
+               // document.getElementById('statusMessage').classList.remove('hidden');
+                //return;
+           // }
+        //}
 
         finalMsTimes = cleanedTimes;
 
