@@ -384,7 +384,7 @@
             const upperFence = q3_temp + 1.5 * iqr;
             const cleanedByIQR = cleanedTimes.filter(t => t <= upperFence);
             outliersRemovedCount = initialCount - cleanedByIQR.length;
-            cleanedTimes = cleanedByIQR;
+            //cleanedTimes = cleanedByIQR;
             //if (cleanedTimes.length < 3) {
               //  document.getElementById('statusMessage').textContent = `ACHTUNG: Nach Entfernen von ${outliersRemovedCount} Ausreißern zu wenig Zeiten übrig.`;
                // document.getElementById('statusMessage').classList.remove('hidden');
