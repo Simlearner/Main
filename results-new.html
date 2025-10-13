@@ -343,6 +343,8 @@
         selectedDrivers = [];
         driverColorIndex = 0;
         updateSelectedDriversUI();
+        // ✅ NEU: automatisch analysieren, wenn Daten fertig sind
+        analyzeLaptimesFromSheet();
     }
 
     // ---------- Analyse (wird über Button ausgelöst, benutzt bereits geladenes allDriverData) ----------
@@ -625,7 +627,6 @@
         loadAndRender();
     };
     document.addEventListener('DOMContentLoaded', () => {
-  analyzeLaptimesFromSheet();
 });
 </script>
 </body>
