@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KI-Recherche-Assistent</title>
+    <!-- Lade Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Setze eine angenehme Standard-Schriftart */
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+        /* Einheitliche Übergänge für Interaktion */
+        button, textarea, #output-container { transition: all 0.2s ease-in-out; }
+    </style>
+</head>
+<body>
+
+    <div class="min-h-screen flex flex-col items-center p-4">
+        <header class="text-center mb-8 pt-10">
+            <h1 class="text-4xl font-extrabold text-gray-900 mb-2">KI-Recherche-Assistent</h1>
+            <p class="text-lg text-gray-600">Geben Sie eine Frage ein. Die KI erkennt das Thema, recherchiert auf Google und fasst die Ergebnisse zusammen.</p>
+        </header>
+
+        <main class="w-full max-w-4xl bg-white p-8 rounded-xl shadow-2xl">
+
+            <!-- 1. Eingabebereich -->
+            <section class="mb-8">
+                <label for="input-text" class="block text-sm font-medium text-gray-700 mb-2">Ihre Frage oder Ihr Thema (Input):</label>
+                <textarea id="input-text" rows="4" 
+                    class="w-full p-3 border-2 border-indigo-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 text-gray-800 resize-none shadow-md"
+                    placeholder="Zum Beispiel: Was sind die neuesten Entwicklungen im Bereich Quantencomputing und welche Unternehmen führen die Forschung an?"
+                ></textarea>
+                <div class="mt-4 flex justify-end">
+                    <button id="send-button" onclick="handleSearch()"
+                        class="px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg shadow-lg hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-500 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                        Recherche starten
+                    </button>
+                </div>
+            </section>
+
+            <!-- Status und Ladeanzeige -->
+            <div id="status-message" class="text-center mb-4 text-sm font-medium text-red-600"></div>
+            <div id="loading-indicator" class="hidden text-center mb-6">
+                <div class="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em] text-indigo-500" role="status">
+                    <span class="!absolute !-m-px !h-px !w-px !overflow-hidden !whitespace-nowrap !border-0 !p-0 ![clip:rect(0,0,0,0)]">Lädt...</span>
+                </div>
+                <p class="mt-2 text-indigo-600">Die KI recherchiert und fasst zusammen...</p>
+            </div>
+
+            <!-- 2. Ausgabebereich -->
+            <section>
+                <h2 class="text-2xl font-bold text-gray-900 mb-4">Zusammenfassung (Output)</h2>
+                <div id="output-container" 
+                    class="min-h-[150px] p-4 bg-gray-50 border border-gray-200 rounded-lg shadow-inner text-gray-700 whitespace-pre-wrap">
+                    Ihre KI-gesteuerte Zusammenfassung wird hier angezeigt, basierend auf aktuellen Google-Suchergebnissen.
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        // Die API-Endpunkte und der Schlüssel sind in dieser Umgebung vordefiniert.
+        const apiKey = ""; 
+        const API_MODEL = 'gemini-2.5-flash-preview-09-2025';
+        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${API_MODEL}:generateContent?key=${apiKey}`;
+
+        const inputEl = document.getElementById('input-text');
+        const outputEl = document.getElementById('output-container');
+        const sendButton = document.getElementById('send-button');
+        const loadingIndicator = document.getElementById('loading-indicator');
+        const statusMessage = document.getElementById('status-message');
+        
+        // Systemanweisung für die KI (Definiert die Rolle, den Prozess und das Format)
+        const systemInstruction = `
+            Du bist ein intelligenter Recherche-Assistent. Deine Aufgabe ist es, die vom Benutzer gestellte Frage oder das Thema zu identifizieren. 
+            Anschließend nutzt du das Google Search Tool, um die aktuellsten Informationen zu finden. 
+            Fasse die Suchergebnisse kurz, präzise und auf Deutsch zusammen und antworte direkt auf die Frage des Benutzers. 
+            Deine Antwort soll maximal 3 Absätze lang sein und muss die gefundenen Quellen zitieren.
+        `;
+
+        /**
+         * Führt die KI-gestützte Suche und Zusammenfassung durch.
+         */
+        async function handleSearch() {
+            const userQuery = inputEl.value.trim();
+            if (!userQuery) {
+                statusMessage.textContent = "Bitte geben Sie eine Frage oder ein Thema ein.";
+                return;
+            }
+
+            // UI-Status setzen
+            statusMessage.textContent = '';
+            outputEl.innerHTML = 'Die KI verarbeitet Ihre Anfrage...';
+            sendButton.disabled = true;
+            loadingIndicator.classList.remove('hidden');
+
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                
+                // WICHTIG: Dies aktiviert das Google Search Grounding Tool (Ihr "Scraper")
+                tools: [{ "google_search": {} }], 
+                
+                // Systemanweisung für die Rollendefinition
+                systemInstruction: {
+                    parts: [{ text: systemInstruction }]
+                },
+            };
+            
+            try {
+                const response = await fetchWithRetry(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+                const candidate = result.candidates?.[0];
+                
+                if (!candidate || !candidate.content?.parts?.[0]?.text) {
+                    throw new Error("Fehler: Konnte keine gültige Antwort von der KI erhalten.");
+                }
+
+                // 1. Text und Quellen extrahieren
+                let summaryText = candidate.content.parts[0].text;
+                let sourcesHtml = '';
+                const groundingMetadata = candidate.groundingMetadata;
+
+                if (groundingMetadata && groundingMetadata.groundingAttributions) {
+                    const sources = groundingMetadata.groundingAttributions
+                        .map(attribution => ({
+                            uri: attribution.web?.uri,
+                            title: attribution.web?.title,
+                        }))
+                        .filter(source => source.uri && source.title); 
+
+                    if (sources.length > 0) {
+                        sourcesHtml = `
+                            <div class="mt-6 pt-4 border-t border-gray-200">
+                                <p class="font-semibold text-sm text-gray-600 mb-2">Quellen (Google Search Grounding):</p>
+                                <ul class="list-disc list-inside space-y-1 text-sm text-indigo-700">
+                                    ${sources.map(s => `<li><a href="${s.uri}" target="_blank" class="hover:underline">${s.title}</a></li>`).join('')}
+                                </ul>
+                            </div>
+                        `;
+                    }
+                }
+
+                // 2. Ausgabe aktualisieren
+                outputEl.innerHTML = `<p>${summaryText}</p>${sourcesHtml}`;
+
+            } catch (error) {
+                console.error("Fehler bei der API-Anfrage:", error);
+                statusMessage.textContent = `Ein Fehler ist aufgetreten: ${error.message}. Bitte versuchen Sie es erneut.`;
+                outputEl.innerHTML = 'Fehler beim Abrufen der Ergebnisse.';
+            } finally {
+                // UI-Status zurücksetzen
+                sendButton.disabled = false;
+                loadingIndicator.classList.add('hidden');
+            }
+        }
+        
+        /**
+         * Hilfsfunktion für den API-Aufruf mit exponentiellem Backoff zur Fehlerbehandlung.
+         */
+        async function fetchWithRetry(url, options, maxRetries = 3) {
+            for (let i = 0; i < maxRetries; i++) {
+                try {
+                    const response = await fetch(url, options);
+                    if (response.status === 429 && i < maxRetries - 1) {
+                        const delay = Math.pow(2, i) * 1000; // 1s, 2s, 4s
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                        continue; // Erneut versuchen
+                    }
+                    if (!response.ok) {
+                        // Wirf einen Fehler für 4xx/5xx Statuscodes
+                        const errorBody = await response.text();
+                        throw new Error(`HTTP-Fehler ${response.status}: ${errorBody.substring(0, 100)}...`);
+                    }
+                    return response;
+                } catch (error) {
+                    if (i === maxRetries - 1) {
+                        throw error; // Fehler nach dem letzten Versuch weiterleiten
+                    }
+                    // Sanft loggen, aber nicht in der Konsole anzeigen, wie angewiesen
+                }
+            }
+        }
+    </script>
+</body>
+</html>
