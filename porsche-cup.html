@@ -289,13 +289,13 @@
                 outliersRemovedCount = initialValidCount - certifiedDrivers.length;
                 
                 // 4. Den Hinweis anpassen
-                certificationHint.innerHTML = `<strong>Certified Drivers:</strong> Your laptime must be $\le$ ${laptimeLIM_display} to be certified. (Limit calculated as Q75 + ${OUTLIER_FACTOR} &times; IQR of valid laptimes)`;
+                certificationHint.innerHTML = `<strong>Certified Drivers:</strong> Your laptime must be below ${laptimeLIM_display} to be certified.`;
             
             } else {
                 // Fallback, wenn zu wenige Daten für IQR
                 certifiedDrivers = allValidLaps;
                 outliersRemovedCount = 0;
-                certificationHint.innerHTML = `<strong>Certified Drivers:</strong> Alle ${initialValidCount} Fahrer mit gültiger Rundenzeit werden angezeigt. (Nicht genügend Daten für IQR-Analyse)`;
+                certificationHint.innerHTML = `<strong>Certified Drivers:</strong> All ${initialValidCount} drivers with valid laptime are being displayd. (Not enough data for IQR-Analysis)`;
             }
             
             // Globalen ELO-Grenzwert für die Chart-Funktion (analyzeLaptimesFromSheet) auf 0 setzen, da er jetzt ignoriert wird.
