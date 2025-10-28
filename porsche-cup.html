@@ -257,31 +257,49 @@
 
             const allData = parseGoogleSheetData(gvizResponse);
 
-            // 1. ELO-Zertifizierungs-LIM berechnen (Q75 der ELOs)
-            const allElos = allData.map(d => d.elo).sort((a,b) => a-b);
-            // Wir nutzen Q75 der ELOs als Grenzwert (LIM)
-            const elo_q75 = Math.round(quantile(allElos, 0.75)); 
+            // --- NEUE LOGIK: Laptime Outlier Removal (IQR) ---
             
-            // 2. Filtern: Certified Drivers (ELO >= LIM AND valid best_lap_ms)
-            // HINWEIS: Es soll nur angezeigt werden, wer eine valide Zeit hat UND certified ist
-            const LIM = elo_q75;
-            certifiedDrivers = allData.filter(d => 
-                d.elo >= LIM && d.best_lap_ms < 2147483647 && d.best_lap_ms > 0
+            // 1. Alle Fahrer mit validen Rundenzeiten herausfiltern
+            const allValidLaps = allData.filter(d => 
+                d.best_lap_ms < 2147483647 && d.best_lap_ms > 0
             );
-
-            // 3. Wenn keine Outlier entfernt werden, nehme einfach alle mit valider Zeit (falls alle certified sind)
-            const allValidLaps = allData.filter(d => d.best_lap_ms < 2147483647 && d.best_lap_ms > 0);
-            if (allValidLaps.length === certifiedDrivers.length && allValidLaps.length > 0) {
-                 // Fallback: Wenn Q75 zu hoch ist (z.B. bei wenigen Fahrern), LIM = Q25 der ELOs
-                 const elo_q25 = Math.round(quantile(allElos, 0.25)); 
-                 LIM = elo_q25;
-                 certifiedDrivers = allData.filter(d => 
-                    d.elo >= LIM && d.best_lap_ms < 2147483647 && d.best_lap_ms > 0
-                );
+            
+            const validMsTimes = allValidLaps.map(d => d.best_lap_ms).sort((a,b)=>a-b);
+            const initialValidCount = validMsTimes.length;
+            
+            let laptimeLIM = 0; // Standardwert
+            const OUTLIER_FACTOR = 2.5; 
+            
+            if (validMsTimes.length >= 4) {
+                // 2. Langsame Ausreißer via IQR entfernen (obere Grenze)
+                const q1_temp = quantile(validMsTimes, 0.25);
+                const q3_temp = quantile(validMsTimes, 0.75);
+                const iqr = q3_temp - q1_temp;
+                
+                // Die Obergrenze (Upper Fence) im Boxplot-Prinzip
+                laptimeLIM = q3_temp + OUTLIER_FACTOR * iqr; 
+            
+                // Filtern der tatsächlichen Driver-Objekte
+                certifiedDrivers = allValidLaps.filter(d => d.best_lap_ms <= laptimeLIM);
+                
+                // 3. Statusmeldungen anpassen
+                const laptimeLIM_display = formatLapTime(Math.round(laptimeLIM));
+                
+                // Die Anzahl der entfernten Ausreißer für die Anzeige berechnen
+                outliersRemovedCount = initialValidCount - certifiedDrivers.length;
+                
+                // 4. Den Hinweis anpassen
+                certificationHint.innerHTML = `<strong>Certified Drivers:</strong> Your laptime must be $\le$ ${laptimeLIM_display} to be certified. (Limit calculated as Q75 + ${OUTLIER_FACTOR} &times; IQR of valid laptimes)`;
+            
+            } else {
+                // Fallback, wenn zu wenige Daten für IQR
+                certifiedDrivers = allValidLaps;
+                outliersRemovedCount = 0;
+                certificationHint.innerHTML = `<strong>Certified Drivers:</strong> Alle ${initialValidCount} Fahrer mit gültiger Rundenzeit werden angezeigt. (Nicht genügend Daten für IQR-Analyse)`;
             }
             
-            // 4. ELO LIM anzeigen
-            certificationHint.innerHTML = `<strong>Certified Drivers:</strong> Your ELO must be $\ge$ ${LIM} and you need a valid laptime to be certified. (LIM calculated as Q${(LIM === elo_q75 ? 75 : 25)})`;
+            // Globalen ELO-Grenzwert für die Chart-Funktion (analyzeLaptimesFromSheet) auf 0 setzen, da er jetzt ignoriert wird.
+            const LIM = 0;
 
 
             // Render Tabelle (nur Certified Drivers)
