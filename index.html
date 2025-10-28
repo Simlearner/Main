@@ -68,35 +68,46 @@
         
         <!-- Second Navigation Row for Big Links -->
         <style>
+            /* Stellt sicher, dass das Elternelement Flexbox-Layout verwendet und Umbrüche verhindert */
+            .link-group-container {
+                display: flex;
+                flex-wrap: nowrap; /* Wichtig: Verhindert, dass die Links auf kleinen Bildschirmen umbrechen */
+                justify-content: center; /* Zentriert die gesamte Gruppe */
+                align-items: center;
+                text-align: center;
+            }
+        
             /* Fügt das Trennzeichen "|" nach jedem Link (außer dem letzten) hinzu */
+            /* Die Klasse .group-link-divider muss jetzt bei ALLEN Links vorhanden sein */
             .group-link-divider:not(:last-child)::after {
                 content: '|';
-                margin-left: 1.5rem; /* Etwas Abstand zum Link */
-                margin-right: 1.5rem; /* Etwas Abstand zum nächsten Link */
+                margin-left: 1.5rem; /* Abstand zum Link */
+                margin-right: 1.5rem; /* Abstand zum nächsten Link */
                 color: #4b5563; /* Eine dunklere Farbe (grau-600) für bessere Sichtbarkeit */
                 font-weight: 400; /* Standard-Schriftgewicht */
             }
+            
             /* Stellt sicher, dass das Trennzeichen nicht in den Hover-Effekt des Links gerät */
             .group-link-divider:not(:last-child):hover::after {
                 color: #4b5563 !important;
             }
         </style>
-        
-        <div class="max-w-7xl mx-auto w-full mt-6 md:mt-8 lg:mt-10 flex flex-wrap justify-between items-center text-center gap-y-4">
-                    
-            <a href="general-advice.html" class="inline-block font-bold text-violet-400 hover:text-white text-xl md:text-2xl transition-colors duration-300 w-full md:w-1/2 lg:w-1/4 px-2">
+         
+        <div class="max-w-7xl mx-auto w-full mt-6 md:mt-8 lg:mt-10 link-group-container">
+            
+            <a href="general-advice.html" class="group-link-divider inline-block font-bold text-violet-400 hover:text-white text-xl md:text-2xl transition-colors duration-300 px-2 whitespace-nowrap">
                 General Setup Advice
             </a>
-                    
-            <a href="setup-files.html" class="group-link-divider inline-block font-bold text-violet-400 hover:text-white text-xl md:text-2xl transition-colors duration-300 w-full md:w-1/2 lg:w-1/4 px-2">
+            
+            <a href="setup-files.html" class="group-link-divider inline-block font-bold text-violet-400 hover:text-white text-xl md:text-2xl transition-colors duration-300 px-2 whitespace-nowrap">
                 Setup Files
             </a>
-                    
-            <a href="results.html"class="group-link-divider inline-block font-bold text-violet-400 hover:text-white text-xl md:text-2xl transition-colors duration-300 w-full md:w-1/2 lg:w-1/4 px-2">
+            
+            <a href="results.html" class="group-link-divider inline-block font-bold text-violet-400 hover:text-white text-xl md:text-2xl transition-colors duration-300 px-2 whitespace-nowrap">
                 Laptimes Ranking
             </a>
-        
-            <a href="porsche-cup.html" class="group-link-divider inline-block font-bold text-violet-400 hover:text-white text-xl md:text-2xl transition-colors duration-300 w-full md:w-1/2 lg:w-1/4 px-2">
+            
+            <a href="porsche-cup.html" class="group-link-divider inline-block font-bold text-violet-400 hover:text-white text-xl md:text-2xl transition-colors duration-300 px-2 whitespace-nowrap">
                 Porsche Cup
             </a>
         </div>
@@ -262,6 +273,7 @@
 
 </body>
 </html>
+
 
 
 
