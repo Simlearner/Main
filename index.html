@@ -71,10 +71,11 @@
             /* Stellt sicher, dass das Elternelement Flexbox-Layout verwendet und Umbrüche verhindert */
             .link-group-container {
                 display: flex;
-                flex-wrap: nowrap; /* Wichtig: Verhindert, dass die Links auf kleinen Bildschirmen umbrechen */
-                justify-content: center; /* Zentriert die gesamte Gruppe */
+                flex-wrap: wrap; /* erlaubt Umbruch */
+                justify-content: center;
                 align-items: center;
                 text-align: center;
+                gap: 1rem; /* schöner Abstand zwischen Links */
             }
         
             /* Fügt das Trennzeichen "|" nach jedem Link (außer dem letzten) hinzu */
@@ -278,6 +279,7 @@
 
 </body>
 </html>
+
 
 
 
