@@ -110,14 +110,6 @@
             </div>
         </div>
         
-        <!-- Button: Mehr laden (wird sichtbar wenn > LOAD_STEP) -->
-        <div class="flex justify-end max-w-7xl xl:max-w-[1550px] mx-auto mt-4">
-            <button id="loadMoreButton"
-                    class="hidden mb-4 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-lg shadow">
-                Weitere 500 laden
-            </button>
-        </div>
-
         <!-- Hauptdaten-Tabelle -->
         <div id="data-container" class="hidden">
             <div class="table-container bg-gray-900 rounded-xl shadow-lg border border-gray-700 p-4">
@@ -289,13 +281,6 @@
             // Erste Charge rendern
             renderNextChunk();
 
-            // Button einblenden falls mehr als LOAD_STEP Zeilen existieren
-            if (fullDriverData.length > LOAD_STEP) {
-                document.getElementById('loadMoreButton').classList.remove('hidden');
-            } else {
-                document.getElementById('loadMoreButton').classList.add('hidden');
-            }
-
             lastUpdatedElement.textContent = formatDateTime(new Date().toISOString());
             loadingElement.classList.add('hidden');
             dataContainer.classList.remove('hidden');
@@ -346,13 +331,14 @@
 
         renderIndex = end;
 
-        // Wenn alles geladen → Button ausblenden
-        if (renderIndex >= fullDriverData.length) {
-            document.getElementById('loadMoreButton').classList.add('hidden');
-        }
-
         // Analyse für aktuell geladene Zeilen vorbereiten
         prepareAnalysisData(fullDriverData.slice(0, renderIndex));
+        // NEU: automatisch den nächsten Chunk laden, sobald der aktuelle fertig ist
+        if (renderIndex < fullDriverData.length) {
+            setTimeout(() => {
+                renderNextChunk();
+            }, 120);
+        }
     }
 
     // ---------- Vorbereitung der Analyse-Daten (automatisch) ----------
@@ -688,11 +674,6 @@
     // ---------- Init ----------
     window.onload = () => {
         resizeCanvas();
-        // Button-Handler zum Laden weiterer Chunks
-        const loadMoreBtn = document.getElementById('loadMoreButton');
-        if (loadMoreBtn) {
-            loadMoreBtn.onclick = () => renderNextChunk();
-        }
         loadAndRender();
     };
     document.addEventListener('DOMContentLoaded', () => {
