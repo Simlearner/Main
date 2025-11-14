@@ -1,80 +1,10 @@
-<!DOCTYPE html>
-<html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Globale Community-Karte | RaceNet</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
-    <style>
-        :root { --map-height: calc(100vh - 80px); }
-        body { font-family: 'Inter', sans-serif; background-color: #000; color: #e4e4e7; }
-        #map { height: var(--map-height); border-radius: 0.75rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.5); }
-        .custom-pin { background-color: #9333ea; color: white; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; border: 2px solid #c084fc; font-size: 10px; font-weight: bold; }
-        .highlight-pin { background-color: #f87171; color: white; border: 3px solid #fecaca; width: 30px; height: 30px; line-height: 24px; font-size: 14px; }
-        .racing-flag { background-image: linear-gradient(45deg,#1f2937 25%,transparent 25%),linear-gradient(-45deg,#1f2937 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#1f2937 75%),linear-gradient(-45deg,transparent 75%,#1f2937 75%); background-size:10px 10px; background-position:0 0,0 10px,10px -10px,-10px 0; }
-        .sidebar-pin { cursor: pointer; transition: all 0.2s ease-in-out; }
-        .sidebar-pin:not(.bg-purple-600):hover { background-color: #4c1d95; transform: translateX(5px); }
-    </style>
-</head>
-<body class="antialiased h-screen flex flex-col">
-
-<header class="bg-gray-900 shadow-xl p-4 flex justify-between items-center racing-flag">
-    <h1 class="text-3xl font-bold text-white tracking-widest"><span class="text-purple-400">RaceNet</span> | Globale Community</h1>
-    <button id="setPinButton" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg shadow-lg transition duration-300 ease-in-out transform hover:scale-105">🏁 Nadel setzen</button>
-</header>
-
-<main class="flex flex-1 overflow-hidden p-4 space-x-4">
-    <aside class="w-1/4 max-w-xs bg-gray-800 p-4 rounded-xl shadow-2xl flex flex-col space-y-4 overflow-y-auto">
-        <h2 class="text-xl font-semibold text-purple-400 border-b border-purple-500 pb-2">Benutzer (Pins: <span id="pinCount">0</span>)</h2>
-        <div class="space-y-2">
-            <input type="text" id="searchLocationInput" placeholder="Suche Kontinent/Land..." class="w-full p-2 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:ring-purple-500 focus:border-purple-500 border-transparent">
-            <div id="searchResult" class="text-sm text-center font-medium"></div>
-        </div>
-        <div id="nicknameList" class="space-y-1 overflow-y-auto flex-1">
-            <p id="noPinsMessage" class="text-gray-400 text-sm italic">Noch keine Pins gesetzt.</p>
-        </div>
-    </aside>
-    <section class="flex-1 min-w-0">
-        <div id="map" class="w-full rounded-xl"></div>
-    </section>
-</main>
-
-<div id="modal" class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center z-50">
-    <div class="bg-gray-800 p-6 rounded-xl shadow-2xl max-w-sm w-full space-y-4 border-2 border-purple-600">
-        <h3 id="modalTitle" class="text-xl font-bold text-purple-400"></h3>
-        <p id="modalMessage" class="text-white"></p>
-        <input type="text" id="modalInput" placeholder="Dein Nickname" class="w-full p-2 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:ring-purple-500 focus:border-purple-500 border-transparent">
-        <div class="flex justify-end space-x-3">
-            <button id="modalCancel" class="bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded-lg transition duration-150">Abbrechen</button>
-            <button id="modalConfirm" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg transition duration-150">Bestätigen</button>
-        </div>
-    </div>
-</div>
-
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
 
 <script>
-const GOOGLE_SHEET_API_URL = "https://script.google.com/macros/s/AKfycbwLUWFvzXvew8CisVXqu-hAkXNBIzWUHMiRT-IS5g2YTM1PQteuessv9PH7EIdANz4I/exec"; // <-- Hier Web-App-URL einfügen
+const GOOGLE_SHEET_API_URL = "https://script.google.com/macros/s/AKfycbwLUWFvzXvew8CisVXqu-hAkXNBIzWUHMiRT-IS5g2YTM1PQteuessv9PH7EIdANz4I/exec";
 
-async function savePinToGoogleSheet(pin) {
-    try {
-        const res = await fetch(GOOGLE_SHEET_API_URL, {
-            method: "POST",
-            body: JSON.stringify(pin),
-            headers: { "Content-Type": "application/json" }
-        });
-        const text = await res.text();
-        console.log("Google Sheet Antwort:", text);
-    } catch (error) {
-        console.error("Fehler beim Senden an Google Sheets:", error);
-    }
-}
-
-// Elemente & globale Variablen
+// Elemente & globale Variablen (bleiben gleich)
 const mapElement = document.getElementById('map');
 const setPinButton = document.getElementById('setPinButton');
 const nicknameListDiv = document.getElementById('nicknameList');
@@ -91,7 +21,7 @@ const modalCancel = document.getElementById('modalCancel');
 
 let map, markers, userPins = [], currentPinningNickname = null, highlightedMarker = null, selectedSidebarItem = null;
 
-// Modal-Funktion
+// Modal-Funktion (bleibt gleich)
 function showModal(title, message, isInput=false, confirmCallback=null, isSpinner=false){
     modalTitle.textContent = title;
     modalMessage.textContent = message;
@@ -111,29 +41,75 @@ function showModal(title, message, isInput=false, confirmCallback=null, isSpinne
     modal.classList.remove('hidden');
 }
 
-// LocalStorage laden/speichern
-function loadPins(){
-    try{
-        const stored = localStorage.getItem('raceNetUserPins');
-        if(stored) userPins = JSON.parse(stored);
-    }catch{userPins=[];}
-}
-function savePins(){ localStorage.setItem('raceNetUserPins', JSON.stringify(userPins)); }
 
-// Neuen Pin hinzufügen + in Google Sheet schreiben
+// --- START: Geänderte Logik für Google Sheet ---
+
+// Neuen Pin zum Google Sheet hinzufügen
+async function savePinToGoogleSheet(pin) {
+    try {
+        const res = await fetch(GOOGLE_SHEET_API_URL, {
+            method: "POST",
+            body: JSON.stringify(pin),
+            headers: { "Content-Type": "application/json" }
+        });
+        if (!res.ok) {
+            throw new Error(`Fehler beim Speichern: ${await res.text()}`);
+        }
+        console.log("Google Sheet Antwort:", await res.text());
+    } catch (error) {
+        console.error("Fehler beim Senden an Google Sheets:", error);
+        throw error; // Fehler weiterleiten
+    }
+}
+
+// ALLE Pins vom Google Sheet abrufen und die Karte aktualisieren
+async function fetchAllPinsFromGoogleSheet() {
+    try {
+        showModal('Daten werden geladen', 'Lade Pins von RaceNet...', false, null, true);
+        const res = await fetch(GOOGLE_SHEET_API_URL); 
+        
+        if (!res.ok) {
+            throw new Error(`HTTP-Fehler! Status: ${res.status}`);
+        }
+        
+        const fetchedPins = await res.json();
+        userPins = fetchedPins; 
+        
+        modal.classList.add('hidden'); 
+        updateMapAndSidebar(); 
+    } catch (error) {
+        console.error("Fehler beim Abrufen der Pins vom Google Sheet:", error);
+        showModal('Ladefehler', 'Konnte die Pins nicht vom Server laden. Versuche es später erneut.');
+        userPins = []; 
+        updateMapAndSidebar();
+    }
+}
+
+// Neuen Pin hinzufügen und Karte neu laden
 function addPin(nickname, lat, lng, country, continent){
     if(userPins.some(p=>p.nickname.toLowerCase()===nickname.toLowerCase())){
         showModal('Fehler', `Der Nickname "${nickname}" existiert bereits.`); return;
     }
     const pin={nickname, lat, lng, country, continent};
-    userPins.push(pin);
-    savePins();
-    savePinToGoogleSheet(pin);
-    updateMapAndSidebar();
-    showModal('Erfolg!', `Willkommen, ${nickname}! Dein Standort (${country}) wurde gespeichert.`);
+    
+    // Sende an Google Sheet und lade dann die Daten neu
+    showModal('Speichervorgang', `Speichere Pin für ${nickname}...`, false, null, true);
+    savePinToGoogleSheet(pin)
+        .then(() => {
+            // Nach erfolgreichem Speichern ALLE Pins neu laden (inkl. des neuen)
+            showModal('Erfolg!', `Willkommen, ${nickname}! Dein Standort (${country}) wurde gespeichert. Lade Daten neu...`);
+            // Ruft fetchAllPinsFromGoogleSheet auf, welches dann updateMapAndSidebar aufruft
+            fetchAllPinsFromGoogleSheet(); 
+        })
+        .catch(error => {
+            showModal('Speicherfehler', `Pin konnte nicht gespeichert werden: ${error.message}`);
+            console.error('Speicherfehler:', error);
+        });
 }
+// --- ENDE: Geänderte Logik für Google Sheet ---
 
-// Map initialisieren
+
+// Map initialisieren (Aufruf geändert)
 function initMap(){
     map=L.map('map',{worldCopyJump:true}).setView([20,0],2);
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
@@ -143,14 +119,15 @@ function initMap(){
     markers=L.markerClusterGroup({showCoverageOnHover:false,zoomToBoundsOnClick:true,spiderfyOnMaxZoom:true});
     map.addLayer(markers);
     map.on('click', onMapClick);
-    loadPins();
-    updateMapAndSidebar();
+    
+    // Daten beim Start vom Sheet abrufen
+    fetchAllPinsFromGoogleSheet(); 
 }
 
-// Custom Pin
+// Custom Pin (bleibt gleich)
 function createCustomPin(content='•', isHighlighted=false){ return L.divIcon({className:`custom-pin ${isHighlighted?'highlight-pin':''}`, html:content, iconSize:isHighlighted?[30,30]:[20,20], iconAnchor:isHighlighted?[15,30]:[10,20]}); }
 
-// Map & Sidebar aktualisieren
+// Map & Sidebar aktualisieren (bleibt gleich, arbeitet aber mit den aus dem Sheet geladenen userPins)
 function updateMapAndSidebar(){
     markers.clearLayers();
     nicknameListDiv.innerHTML='';
@@ -169,7 +146,7 @@ function updateMapAndSidebar(){
     });
 }
 
-// Pin Highlight & Sidebar Toggle
+// Pin Highlight & Sidebar Toggle (bleibt gleich)
 function togglePinHighlightAndZoom(pin, sidebarItem){
     const isCurrentlySelected = selectedSidebarItem===sidebarItem;
     if(highlightedMarker) highlightedMarker.setIcon(createCustomPin());
@@ -184,7 +161,7 @@ function togglePinHighlightAndZoom(pin, sidebarItem){
     } else { searchResultDiv.textContent='Hervorhebung aufgehoben.'; }
 }
 
-// Reverse Geocoding
+// Reverse Geocoding (bleibt gleich)
 async function reverseGeocode(lat,lng){
     try{
         const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=10&addressdetails=1&accept-language=de`);
@@ -202,7 +179,7 @@ async function reverseGeocode(lat,lng){
     }catch(e){ console.error(e); return {country:'Fehler',continent:'Fehler'}; }
 }
 
-// Pin setzen Flow
+// Pin setzen Flow (bleibt gleich)
 setPinButton.addEventListener('click',()=>{
     showModal('Nickname eingeben','Bitte gib deinen einzigartigen Nickname ein, um fortzufahren.',true,(nickname)=>{
         if(!nickname){showModal('Abgebrochen','Nickname-Eingabe abgebrochen.'); return;}
@@ -222,7 +199,7 @@ async function onMapClick(e){
     currentPinningNickname=null;
 }
 
-// Suche / Filter
+// Suche / Filter (bleibt gleich)
 searchLocationInput.addEventListener('input',()=>{
     const q=searchLocationInput.value.trim().toLowerCase();
     if(q.length===0){document.querySelectorAll('.sidebar-pin').forEach(i=>i.classList.remove('hidden')); pinCountSpan.textContent=userPins.length; searchResultDiv.textContent=''; return;}
@@ -238,6 +215,3 @@ searchLocationInput.addEventListener('input',()=>{
 
 window.onload=initMap;
 </script>
-
-</body>
-</html>
