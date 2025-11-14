@@ -19,7 +19,7 @@
         }
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #1a1a2e; /* Dunkler Hintergrund (Thema) */
+            background-color: #000000; /* Hintergrund auf Schwarz gesetzt */
             color: #e4e4e7; /* Heller Text */
         }
         #map {
@@ -55,10 +55,11 @@
         }
         /* Rennsport-Flaggen-Elemente */
         .racing-flag {
-            background-image: linear-gradient(45deg, #1a1a2e 25%, transparent 25%),
-                              linear-gradient(-45deg, #1a1a2e 25%, transparent 25%),
-                              linear-gradient(45deg, transparent 75%, #1a1a2e 75%),
-                              linear-gradient(-45deg, transparent 75%, #1a1a2e 75%);
+            /* Behalte den dunklen Streifen-Effekt bei, aber stelle sicher, dass er auf dem schwarzen Hintergrund funktioniert */
+            background-image: linear-gradient(45deg, #1f2937 25%, transparent 25%), /* Dunkelgrau statt #1a1a2e */
+                              linear-gradient(-45deg, #1f2937 25%, transparent 25%),
+                              linear-gradient(45deg, transparent 75%, #1f2937 75%),
+                              linear-gradient(-45deg, transparent 75%, #1f2937 75%);
             background-size: 10px 10px;
             background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
         }
@@ -67,7 +68,8 @@
             cursor: pointer;
             transition: all 0.2s ease-in-out;
         }
-        .sidebar-pin:hover {
+        /* Hover-Stil wird durch die Selektion überschrieben, daher muss der Standard-Hover auf der Standardklasse bleiben */
+        .sidebar-pin:not(.bg-purple-600):hover {
             background-color: #4c1d95; /* Dunkleres Lila bei Hover */
             transform: translateX(5px);
         }
@@ -112,13 +114,13 @@
         </section>
     </main>
 
-    <!-- Modalfenster (für Nachrichten und Eingaben) -->
+    <!-- Modalfenster (für Nachrichten und Eingaben) - WIRD AUTOMATISCH MIT Tailwind ZENTRIERT -->
     <div id="modal" class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center z-50">
         <div class="bg-gray-800 p-6 rounded-xl shadow-2xl max-w-sm w-full space-y-4 border-2 border-purple-600">
             <h3 id="modalTitle" class="text-xl font-bold text-purple-400"></h3>
             <p id="modalMessage" class="text-white"></p>
             <input type="text" id="modalInput" placeholder="Dein Nickname"
-                   class="w-full p-2 rounded-lg bg-gray-700 text-white placeholder-gray-400 hidden focus:ring-purple-500 focus:border-purple-500 border-transparent">
+                   class="w-full p-2 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:ring-purple-500 focus:border-purple-500 border-transparent">
             <div class="flex justify-end space-x-3">
                 <button id="modalCancel" class="bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded-lg transition duration-150">
                     Abbrechen
@@ -156,18 +158,31 @@
         let markers; // MarkerClusterGroup
         let userPins = []; // Speichert alle Pin-Daten
         let currentPinningNickname = null;
-        let highlightedMarker = null;
-        let geoJsonLayer = null; // Für die Highlight-Flächen
+        let highlightedMarker = null; // Aktuell hervorgehobener Marker auf der Karte
+        let selectedSidebarItem = null; // Aktuell ausgewähltes Element in der Seitenleiste
+        let geoJsonLayer = null; // Für Gebiets-Highlights (jetzt entfernt)
 
         // --- Hilfsfunktionen für das Modal ---
 
         /** Zeigt das Modal mit benutzerdefinierter Konfiguration an */
-        function showModal(title, message, isInput = false, confirmCallback = null) {
+        function showModal(title, message, isInput = false, confirmCallback = null, isSpinner = false) {
             modalTitle.textContent = title;
             modalMessage.textContent = message;
 
             modalInput.value = '';
             modalInput.classList.toggle('hidden', !isInput);
+
+            // Verberge Buttons und zeige Spinner, wenn geladen wird
+            modalConfirm.classList.toggle('hidden', isSpinner);
+            modalCancel.classList.toggle('hidden', isSpinner || !isInput);
+
+            if (isSpinner) {
+                // Füge einen einfachen Lade-Spinner hinzu (Tailwind-Klasse)
+                modalMessage.innerHTML = `<p class="flex items-center justify-center space-x-2">${message} <svg class="animate-spin h-5 w-5 text-purple-400 ml-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg></p>`;
+            } else {
+                 modalMessage.textContent = message;
+            }
+
 
             modalConfirm.onclick = () => {
                 const inputValue = isInput ? modalInput.value.trim() : null;
@@ -180,8 +195,12 @@
 
             modalCancel.onclick = () => {
                 modal.classList.add('hidden');
+                // Setze den Pinning-Zustand zurück, falls abgebrochen wird
+                if (currentPinningNickname) {
+                    currentPinningNickname = null;
+                }
             };
-            modalCancel.classList.toggle('hidden', !isInput); // Abbrechen nur bei Eingabe anzeigen
+            modalCancel.classList.toggle('hidden', isSpinner || !isInput); // Abbrechen nur bei Eingabe anzeigen
 
             modal.classList.remove('hidden');
         }
@@ -231,7 +250,7 @@
             userPins.push({ nickname, lat, lng, country, continent });
             savePins();
             updateMapAndSidebar();
-            showModal('Erfolg!', `Willkommen, ${nickname}! Dein Standort wurde erfolgreich gespeichert.`);
+            showModal('Erfolg!', `Willkommen, ${nickname}! Dein Standort (${country}) wurde erfolgreich gespeichert.`);
         }
 
         // --- Kartenlogik (Leaflet) ---
@@ -286,6 +305,7 @@
             markers.clearLayers(); // Löscht alle bestehenden Marker
             nicknameListDiv.innerHTML = '';
             highlightedMarker = null;
+            selectedSidebarItem = null; // Auswahl zurücksetzen
 
             if (userPins.length === 0) {
                 pinCountSpan.textContent = '0';
@@ -306,52 +326,126 @@
 
                 // Erstelle Eintrag in der Seitenleiste
                 const listItem = document.createElement('div');
+                // Standardklassen: bg-gray-700 und hover-Effekt
                 listItem.className = 'sidebar-pin p-2 bg-gray-700 rounded-lg hover:bg-purple-800 transition duration-150 flex justify-between items-center';
+                listItem.dataset.nickname = pin.nickname; // Wichtig für die Auswahl und Filterung
                 listItem.innerHTML = `<span class="font-medium">${pin.nickname}</span> <span class="text-sm text-gray-400">${pin.country}</span>`;
-                listItem.addEventListener('click', () => highlightUserPin(pin.nickname));
+                listItem.addEventListener('click', () => togglePinHighlightAndZoom(pin, listItem));
                 nicknameListDiv.appendChild(listItem);
             });
         }
 
-        /** Hebt einen spezifischen Benutzer-Pin hervor */
-        function highlightUserPin(nickname) {
-            // 1. Highlight aufheben
+        /**
+         * Hebt einen spezifischen Benutzer-Pin auf der Karte hervor und
+         * togglet die Auswahl in der Seitenleiste.
+         */
+        function togglePinHighlightAndZoom(pin, sidebarItem) {
+            const isCurrentlySelected = selectedSidebarItem === sidebarItem;
+
+            // 1. Alle Highlights aufheben (Karte und Sidebar)
             if (highlightedMarker) {
                 highlightedMarker.setIcon(createCustomPin());
                 highlightedMarker = null;
             }
-
-            // 2. Pin suchen
-            let targetPin = userPins.find(p => p.nickname === nickname);
-            if (!targetPin) return;
-
-            // 3. Marker in der MarkerClusterGroup finden
-            markers.eachLayer(layer => {
-                if (layer.options.pinData && layer.options.pinData.nickname === nickname) {
-                    highlightedMarker = layer;
-                    return false; // Schleife beenden
-                }
-            });
-
-            if (highlightedMarker) {
-                // 4. Highlight setzen (größer und rot)
-                highlightedMarker.setIcon(createCustomPin('★', true));
-
-                // 5. Zur Position zoomen und Popup öffnen
-                map.flyTo([targetPin.lat, targetPin.lng], 8);
-                highlightedMarker.openPopup();
-
-                // Entferne eventuelle vorherige Gebiets-Highlights
-                clearGeoJsonLayer();
-                searchResultDiv.textContent = `Pin von ${nickname} hervorgehoben.`;
+            if (selectedSidebarItem) {
+                // Selektionsklassen entfernen
+                selectedSidebarItem.classList.remove('bg-purple-600', 'text-white');
+                selectedSidebarItem.classList.add('bg-gray-700', 'hover:bg-purple-800');
+                selectedSidebarItem = null;
             }
+
+            // 2. Prüfen, ob eine neue Auswahl erfolgen soll (Toggle-Logik)
+            if (!isCurrentlySelected) {
+                // NEU AUSWÄHLEN
+
+                // 2a. Map Marker suchen und hervorheben
+                let foundMarker = null;
+                markers.eachLayer(layer => {
+                    if (layer.options.pinData && layer.options.pinData.nickname === pin.nickname) {
+                        foundMarker = layer;
+                        return false; // Schleife beenden
+                    }
+                });
+
+                if (foundMarker) {
+                    highlightedMarker = foundMarker;
+                    // Highlight setzen (größer und rot)
+                    highlightedMarker.setIcon(createCustomPin('★', true));
+                    // Zur Position zoomen und Popup öffnen
+                    map.flyTo([pin.lat, pin.lng], 8);
+                    highlightedMarker.openPopup();
+                }
+
+                // 2b. Sidebar Highlight setzen
+                selectedSidebarItem = sidebarItem;
+                selectedSidebarItem.classList.remove('bg-gray-700', 'hover:bg-purple-800');
+                selectedSidebarItem.classList.add('bg-purple-600', 'text-white');
+
+                searchResultDiv.textContent = `Pin von ${pin.nickname} hervorgehoben.`;
+            } else {
+                // DESELEKTIERT
+                searchResultDiv.textContent = `Hervorhebung aufgehoben.`;
+            }
+
+            // Entferne eventuelle vorherige Gebiets-Highlights (immer nach Interaktion)
+            clearGeoJsonLayer();
         }
 
-        /** Entfernt die GeoJson-Highlight-Ebene */
+        /** Entfernt die GeoJson-Highlight-Ebene (Nicht mehr für die Suche verwendet) */
         function clearGeoJsonLayer() {
             if (geoJsonLayer) {
                 map.removeLayer(geoJsonLayer);
                 geoJsonLayer = null;
+            }
+        }
+        
+        // --- Reverse Geocoding API Aufruf (Nominatim) ---
+
+        /** Ruft Land und Kontinent basierend auf Koordinaten ab */
+        async function reverseGeocode(lat, lng) {
+            // Verwende Nominatim (OpenStreetMap) für Reverse Geocoding.
+            // Achtung: Öffentliche APIs wie Nominatim haben Ratenbegrenzungen.
+            const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=10&addressdetails=1&accept-language=de`;
+            
+            try {
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error('Geocoding-Netzwerkfehler.');
+                }
+                const data = await response.json();
+                const address = data.address;
+
+                // Extrahiere Land (bevorzugt auf Deutsch)
+                const country = address.country || 'Unbekanntes Land';
+
+                // Kontinent muss oft abgeleitet werden, da er nicht direkt zurückgegeben wird (sehr vereinfacht)
+                let continent = 'Unbekannter Kontinent';
+                if (address.continent) {
+                    continent = address.continent.replace(/ Continent$/, '');
+                } else if (address.country_code) {
+                    const countryCode = address.country_code.toUpperCase();
+                    // Stark vereinfachtes Mapping für gängige Länder (kann unvollständig sein)
+                    const continentMap = {
+                        // Europa
+                        'DE': 'Europa', 'FR': 'Europa', 'GB': 'Europa', 'ES': 'Europa', 'IT': 'Europa', 'PL': 'Europa',
+                        // Nordamerika
+                        'US': 'Nordamerika', 'CA': 'Nordamerika', 'MX': 'Nordamerika',
+                        // Asien
+                        'JP': 'Asien', 'CN': 'Asien', 'IN': 'Asien', 'KR': 'Asien',
+                        // Afrika
+                        'EG': 'Afrika', 'ZA': 'Afrika', 'NG': 'Afrika',
+                        // Südamerika
+                        'BR': 'Südamerika', 'AR': 'Südamerika', 'CO': 'Südamerika',
+                        // Australien/Ozeanien
+                        'AU': 'Australien', 'NZ': 'Australien'
+                    };
+                    continent = continentMap[countryCode] || 'Unbekannter Kontinent';
+                }
+
+                return { country, continent };
+            } catch (error) {
+                console.error("Geocoding-Fehler:", error);
+                return { country: 'Geocoding Fehler', continent: 'Geocoding Fehler' };
             }
         }
 
@@ -374,105 +468,94 @@
                         return;
                     }
                     currentPinningNickname = nickname;
-                    showModal('Karte klicken', `Hallo, ${nickname}! Klicke nun auf die Weltkarte, um deinen Wohnort zu markieren.`);
+                    showModal('Karte klicken', `Hallo, ${nickname}! Klicke nun auf die Weltkarte, um deinen Wohnort zu markieren.`, false); // Kein Input beim Bestätigen
                 }
             );
         });
 
         /** Event-Handler für den Klick auf die Karte */
-        function onMapClick(e) {
+        async function onMapClick(e) {
             if (!currentPinningNickname) return; // Nur aktiv, wenn der Pin-Setzen-Flow gestartet wurde
 
             const { lat, lng } = e.latlng;
+            const nickname = currentPinningNickname;
 
-            // In einem realen Szenario müssten wir hier einen Reverse Geocoding API-Aufruf machen,
-            // um Land und Kontinent zu bestimmen (z.B. mit Nominatim oder OpenCage).
-            // Da wir nur eine einzelne HTML-Datei verwenden dürfen, verwenden wir eine vereinfachte Bestimmung.
-
-            // Für die Demo fragen wir den Benutzer nach dem Land/Kontinent:
+            // 1. Lade-Modal anzeigen
             showModal(
-                'Standort bestätigen',
-                `Setze Pin bei: Breitengrad ${lat.toFixed(2)}, Längengrad ${lng.toFixed(2)}. Bitte gib Land und Kontinent (durch Komma getrennt) an (z.B. Deutschland, Europa):`,
-                true,
-                (locationString) => {
-                    if (!locationString) {
-                        showModal('Abgebrochen', 'Standortbestätigung wurde abgebrochen. Pin wurde nicht gesetzt.');
-                        currentPinningNickname = null;
-                        return;
-                    }
-
-                    const parts = locationString.split(',').map(s => s.trim());
-                    const country = parts[0] || 'Unbekanntes Land';
-                    const continent = parts[1] || 'Unbekannter Kontinent';
-
-                    addPin(currentPinningNickname, lat, lng, country, continent);
-                    currentPinningNickname = null; // Setzen des Pins ist abgeschlossen
-                }
+                'Standort wird ermittelt',
+                `Suche nach Land und Kontinent für ${lat.toFixed(2)}, ${lng.toFixed(2)}...`,
+                false, // Kein Input
+                null,  // Kein Bestätigungs-Callback
+                true   // Ist ein Spinner/Loading
             );
+
+            // 2. Reverse Geocoding durchführen
+            const location = await reverseGeocode(lat, lng);
+
+            // 3. Pin hinzufügen
+            if (location.country.includes('Fehler')) {
+                showModal('Fehler beim Standort', `Konnte den Standort für ${nickname} nicht automatisch ermitteln. Bitte versuche es erneut.`);
+            } else {
+                addPin(nickname, lat, lng, location.country, location.continent);
+            }
+
+            currentPinningNickname = null; // Setzen des Pins ist abgeschlossen
         }
 
-        // --- Such- und Highlight-Logik (Kontinent/Land) ---
+        // --- Such- und Filterlogik (Kontinent/Land) ---
 
-        /** Führt die Suche nach Land oder Kontinent aus */
+        /** Führt die Suche nach Land oder Kontinent aus und filtert die Sidebar */
         searchLocationInput.addEventListener('input', () => {
             const query = searchLocationInput.value.trim().toLowerCase();
-            clearGeoJsonLayer(); // Entfernt vorheriges Highlight
+            
+            // 1. GeoJSON-Highlight entfernen (Wunsch des Benutzers)
+            clearGeoJsonLayer();
 
             if (query.length === 0) {
+                // Keine Suche: Alle Pins anzeigen
                 searchResultDiv.textContent = '';
+                document.querySelectorAll('.sidebar-pin').forEach(item => {
+                    item.classList.remove('hidden');
+                });
+                pinCountSpan.textContent = userPins.length; // Gesamtzahl
                 return;
             }
 
-            // Filtere Pins nach Land oder Kontinent
-            const filteredPins = userPins.filter(pin =>
-                pin.country && pin.country.toLowerCase().includes(query) ||
-                pin.continent && pin.continent.toLowerCase().includes(query)
-            );
+            let matches = 0;
+            
+            // 2. Sidebar-Einträge filtern
+            document.querySelectorAll('.sidebar-pin').forEach(item => {
+                // Den zugehörigen Pin finden (über data-nickname)
+                const nickname = item.dataset.nickname;
+                const pin = userPins.find(p => p.nickname === nickname);
 
-            const count = filteredPins.length;
-            searchResultDiv.textContent = count > 0
-                ? `${count} Pins in der Region gefunden.`
-                : 'Keine Pins in der Region gefunden.';
+                const isMatch = pin && (
+                    // Prüfe, ob Land oder Kontinent die Suchanfrage enthält
+                    (pin.country && pin.country.toLowerCase().includes(query)) ||
+                    (pin.continent && pin.continent.toLowerCase().includes(query))
+                );
 
-            if (count > 0) {
-                // Erstelle eine Bounding Box (Rechteck) für das Highlight
-                let bounds = L.latLngBounds([]);
-                filteredPins.forEach(pin => {
-                    bounds.extend([pin.lat, pin.lng]);
-                });
-
-                if (bounds.isValid()) {
-                    // Füge eine GeoJSON-Ebene mit dem Rechteck als Highlight hinzu
-                    const geoJsonData = {
-                        "type": "Feature",
-                        "geometry": {
-                            "type": "Polygon",
-                            "coordinates": [[
-                                [bounds.getWest(), bounds.getNorth()],
-                                [bounds.getEast(), bounds.getNorth()],
-                                [bounds.getEast(), bounds.getSouth()],
-                                [bounds.getWest(), bounds.getSouth()],
-                                [bounds.getWest(), bounds.getNorth()]
-                            ]]
-                        }
-                    };
-
-                    geoJsonLayer = L.geoJson(geoJsonData, {
-                        style: {
-                            color: "#c084fc", // Lila Rand
-                            weight: 3,
-                            opacity: 0.6,
-                            fillColor: "#9333ea", // Lila Füllung
-                            fillOpacity: 0.2
-                        }
-                    }).addTo(map);
-
-                    // Zoome zum Begrenzungsrahmen
-                    map.fitBounds(bounds, { padding: [50, 50] });
-
-                    // Optional: Zeige Cluster-Markierungen für die Region an (Leaflet MarkerCluster macht dies automatisch beim Zoomen)
+                if (isMatch) {
+                    item.classList.remove('hidden');
+                    matches++;
+                } else {
+                    item.classList.add('hidden');
+                    // Wenn ein ausgeblendeter Pin gerade ausgewählt ist, muss die Auswahl aufgehoben werden
+                    if (selectedSidebarItem === item) {
+                        // Ruft togglePinHighlightAndZoom auf, um die Markierung aufzuheben
+                        // Da die Auswahl in diesem Fall bereits aufgehoben wurde, wird kein neues Highlight gesetzt.
+                        togglePinHighlightAndZoom(pin, item); 
+                    }
                 }
-            }
+            });
+            
+            // 3. Ergebnis anzeigen
+            searchResultDiv.textContent = matches > 0
+                ? `${matches} Pins in der Region angezeigt.`
+                : 'Keine Pins in der Region gefunden.';
+            
+            // Zeige die Anzahl der gefundenen Pins im Titel an (während der Filterung)
+            pinCountSpan.textContent = matches;
         });
 
         // Initialisiere die Karte, sobald das DOM geladen ist
