@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lap Time Analyzer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-950 text-white">
+
+    <div class="max-w-6xl mx-auto p-6">
+
+        <h1 class="text-4xl font-bold mb-6 text-indigo-400">Lap Time Analyzer</h1>
+
+        <!-- API Formular -->
+        <div class="bg-gray-900 p-6 rounded-lg shadow-lg mb-6">
+            <h2 class="text-2xl font-semibold mb-4">API Settings</h2>
+            <form id="apiForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block mb-1">Client Key</label>
+                    <input id="clientKey" type="text" class="w-full p-2 rounded bg-gray-800 text-white">
+                </div>
+                <div>
+                    <label class="block mb-1">Client Secret</label>
+                    <input id="clientSecret" type="text" class="w-full p-2 rounded bg-gray-800 text-white">
+                </div>
+                <div>
+                    <label class="block mb-1">Session Type</label>
+                    <input id="sessionType" type="text" value="ALL" class="w-full p-2 rounded bg-gray-800 text-white">
+                </div>
+                <div>
+                    <label class="block mb-1">Car Class</label>
+                    <input id="carClass" type="text" value="ALL" class="w-full p-2 rounded bg-gray-800 text-white">
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block mb-1">Car</label>
+                    <input id="car" type="text" value="ALL" class="w-full p-2 rounded bg-gray-800 text-white">
+                </div>
+                <div class="md:col-span-2 flex justify-end">
+                    <button id="loadButton" type="submit"
+                            class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-6 py-2 rounded-lg shadow">
+                        Load Data
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Button: Mehr laden -->
+        <button id="loadMoreButton"
+                class="hidden mb-4 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-lg shadow">
+            Weitere 500 laden
+        </button>
+
+        <!-- Tabellen-Container -->
+        <div id="data-container" class="hidden">
+            <h2 class="text-2xl font-semibold mb-2">Driver Ranking</h2>
+            <table class="min-w-full bg-gray-900 rounded-lg shadow-lg">
+                <thead class="bg-gray-800 text-gray-300 text-sm uppercase">
+                    <tr>
+                        <th class="px-2 py-3">#</th>
+                        <th class="px-2 py-3">Best Lap</th>
+                        <th class="px-2 py-3">Names</th>
+                        <th class="px-2 py-3">Steam</th>
+                        <th class="px-2 py-3">Date</th>
+                        <th class="px-2 py-3">Session</th>
+                        <th class="px-2 py-3">Car</th>
+                        <th class="px-2 py-3">Class</th>
+                    </tr>
+                </thead>
+                <tbody id="driver-list"></tbody>
+            </table>
+
+            <div class="mt-2 text-gray-400 text-sm">
+                Last updated: <span id="lastUpdated"></span>
+            </div>
+        </div>
+
+        <!-- Analyse Container -->
+        <div id="analysis-container" class="hidden mt-10">
+            <h2 class="text-2xl font-semibold mb-4">Analyse</h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-gray-900 p-4 rounded-lg shadow-lg">
+                    <h3 class="text-xl font-semibold mb-3">Schnellster Fahrer</h3>
+                    <p id="fastest-driver" class="text-indigo-400"></p>
+                </div>
+
+                <div class="bg-gray-900 p-4 rounded-lg shadow-lg">
+                    <h3 class="text-xl font-semibold mb-3">Durchschnitt Bestzeiten</h3>
+                    <p id="avg-times" class="text-indigo-400"></p>
+                </div>
+
+                <div class="bg-gray-900 p-4 rounded-lg shadow-lg">
+                    <h3 class="text-xl font-semibold mb-3">Fahreranzahl</h3>
+                    <p id="driver-count" class="text-indigo-400"></p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // --------------------------
+        // Load More Globals
+        // --------------------------
+        let fullDriverData = [];
+        let renderIndex = 0;
+        const LOAD_STEP = 500;
+
+
+        // --------------------------
+        // API Laden
+        // --------------------------
+        async function loadAndRender(event) {
+            event.preventDefault();
+
+            const clientKey = document.getElementById("clientKey").value.trim();
+            const clientSecret = document.getElementById("clientSecret").value.trim();
+            const sessionType = document.getElementById("sessionType").value.trim();
+            const carClass = document.getElementById("carClass").value.trim();
+            const car = document.getElementById("car").value.trim();
+
+            if (!clientKey || !clientSecret) {
+                alert("Bitte Client Key und Secret eingeben.");
+                return;
+            }
+
+            const url =
+                `https://client-portal-api.ekarting.club/api/data/ranking?clientKey=${clientKey}&clientSecret=${clientSecret}` +
+                `&sessionType=${sessionType}&carClass=${carClass}&car=${car}`;
+
+            const response = await fetch(url);
+            const json = await response.json();
+            const driverData = json.result || [];
+
+            const table = document.getElementById("data-container");
+            const driverList = document.getElementById("driver-list");
+
+            table.classList.remove("hidden");
+
+            // --------------------
+            // Speichere Daten & erster Render
+            // --------------------
+            fullDriverData = driverData;
+            renderIndex = 0;
+            driverList.innerHTML = "";
+
+            renderNextChunk();
+
+            if (fullDriverData.length > LOAD_STEP) {
+                document.getElementById("loadMoreButton").classList.remove("hidden");
+            }
+
+            document.getElementById("lastUpdated").textContent =
+                new Date().toLocaleString("de-DE");
+        }
+
+        // --------------------------
+        // Rendering in 500er Blöcken
+        // --------------------------
+        function renderNextChunk() {
+            const driverList = document.getElementById("driver-list");
+            const end = Math.min(renderIndex + LOAD_STEP, fullDriverData.length);
+
+            for (let i = renderIndex; i < end; i++) {
+                const driver = fullDriverData[i];
+
+                const row = document.createElement("tr");
+                const namesString =
+                    driver.names_used.length > 0 ? driver.names_used.join("<br>") : "Unbekannt";
+
+                const rowClass =
+                    i % 2 === 0
+                        ? "bg-gray-800 hover:bg-gray-700"
+                        : "bg-gray-900 hover:bg-gray-800";
+
+                row.className = rowClass;
+
+                let bestTimeClass =
+                    i === 0
+                        ? "text-yellow-600 font-extrabold text-lg"
+                        : "text-green-600 font-extrabold text-lg";
+
+                row.innerHTML = `
+                    <td class="px-2 py-4 text-center">${i + 1}</td>
+                    <td class="px-2 py-4 text-center ${bestTimeClass}">${driver.best_lap_display}</td>
+                    <td class="px-2 py-4 text-center text-gray-300">${namesString}</td>
+                    <td class="px-2 py-4 text-center">
+                        <a class="text-blue-500 hover:text-blue-400" target="_blank"
+                            href="https://steamcommunity.com/profiles/${driver.steam_id}">
+                            View Profile
+                        </a>
+                    </td>
+                    <td class="px-2 py-4 text-center text-gray-300">${driver.best_lap_date_utc}</td>
+                    <td class="px-2 py-4 text-center text-gray-300">${driver.session_type}</td>
+                    <td class="px-2 py-4 text-center text-gray-300">${driver.car}</td>
+                    <td class="px-2 py-4 text-center text-gray-300">${driver.driver_class}</td>
+                `;
+
+                driverList.appendChild(row);
+            }
+
+            renderIndex = end;
+
+            if (renderIndex >= fullDriverData.length) {
+                document.getElementById("loadMoreButton").classList.add("hidden");
+            }
+
+            prepareAnalysisData(fullDriverData.slice(0, renderIndex));
+        }
+
+        // --------------------------
+        // Analyse Daten
+        ----------------------------
+        function prepareAnalysisData(dataset) {
+            const analysisContainer = document.getElementById("analysis-container");
+            analysisContainer.classList.remove("hidden");
+
+            if (dataset.length === 0) return;
+
+            const fastest = dataset[0];
+            document.getElementById("fastest-driver").textContent =
+                fastest.names_used[0] + " – " + fastest.best_lap_display;
+
+            const avg =
+                dataset
+                    .map(d => d.best_lap_ms)
+                    .reduce((a, b) => a + b, 0) / dataset.length;
+
+            document.getElementById("avg-times").textContent =
+                (avg / 1000).toFixed(3) + "s";
+
+            document.getElementById("driver-count").textContent = dataset.length;
+        }
+
+        // --------------------------
+        // Button Events
+        // --------------------------
+        document.getElementById("apiForm").addEventListener("submit", loadAndRender);
+        document.getElementById("loadMoreButton").onclick = () => renderNextChunk();
+    </script>
+
+</body>
+</html>
