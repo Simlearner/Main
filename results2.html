@@ -1,244 +1,702 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lap Time Analyzer</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>ACC Zoom Laptimes + Analysis</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #0d1117; color: #e5e7eb; }
+        .table-container { overflow-x: auto; }
+        /* Chart styles (light/dark neutralized) */
+        #chartContainer { height: 320px; max-height: 50vh; }
+        #laptimeChart { width: 100%; height: 100%; background: #0b1220; border-radius: 6px; }
+    </style>
 </head>
-<body class="bg-gray-950 text-white">
+<body class="p-4 md:p-8 min-h-screen">
 
-    <div class="max-w-6xl mx-auto p-6">
+    <div id="app" class="max-w-7xl xl:max-w-[1550px] mx-auto">
+        <header class="text-center mb-6 p-6 bg-gray-800 rounded-xl shadow-2xl">
+            <nav class="flex justify-between items-center max-w-7xl xl:max-w-[1550px] mx-auto">
+                <a href="index.html" class="flex-shrink-0">
+                    <img src="https://raw.githubusercontent.com/Simlearner/Main/main/assets/pictures/image01.jpg" alt="SimLearner Logo" class="h-28 rounded-lg">
+                </a>
+                <a href="index.html" class="px-4 py-2 border border-gray-600 rounded-lg text-gray-300 hover:border-white hover:text-white transition-colors duration-300">
+                    Back to Main page
+                </a>
+            </nav>
 
-        <h1 class="text-4xl font-bold mb-6 text-indigo-400">Lap Time Analyzer</h1>
+            <h1 class="text-3xl sm:text-4xl font-extrabold text-white mb-2">ACC Zoom Laptimes</h1>
+            <p class="text-sm sm:text-base text-gray-400">Zoom at Monza 1 & 2 — 14°Celsius BOP [-40KG]</p>
+        </header>
 
-        <!-- API Formular -->
-        <div class="bg-gray-900 p-6 rounded-lg shadow-lg mb-6">
-            <h2 class="text-2xl font-semibold mb-4">API Settings</h2>
-            <form id="apiForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label class="block mb-1">Client Key</label>
-                    <input id="clientKey" type="text" class="w-full p-2 rounded bg-gray-800 text-white">
-                </div>
-                <div>
-                    <label class="block mb-1">Client Secret</label>
-                    <input id="clientSecret" type="text" class="w-full p-2 rounded bg-gray-800 text-white">
-                </div>
-                <div>
-                    <label class="block mb-1">Session Type</label>
-                    <input id="sessionType" type="text" value="ALL" class="w-full p-2 rounded bg-gray-800 text-white">
-                </div>
-                <div>
-                    <label class="block mb-1">Car Class</label>
-                    <input id="carClass" type="text" value="ALL" class="w-full p-2 rounded bg-gray-800 text-white">
-                </div>
-                <div class="md:col-span-2">
-                    <label class="block mb-1">Car</label>
-                    <input id="car" type="text" value="ALL" class="w-full p-2 rounded bg-gray-800 text-white">
-                </div>
-                <div class="md:col-span-2 flex justify-end">
-                    <button id="loadButton" type="submit"
-                            class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-6 py-2 rounded-lg shadow">
-                        Load Data
-                    </button>
-                </div>
-            </form>
+        <div id="loading" class="text-center text-blue-400 font-semibold mt-6">Loading Laptimes and Driver data from Simlearner servers...</div>
+        <div id="error-message" class="hidden p-4 bg-red-800 text-white rounded-lg shadow-md text-center">
+            Error loading the data. Ensure, the correct <strong>Spreadsheet ID</strong> is used and the document is public on the web.
         </div>
 
-        <!-- Button: Mehr laden -->
-        <button id="loadMoreButton"
-                class="hidden mb-4 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-lg shadow">
-            Weitere 500 laden
-        </button>
+        <!-- ANALYSE-UI (integriert aus Seite 2) -->
+        <div id="analysis-ui" class="hidden mt-8 max-w-6xl mx-auto p-6 bg-white/5 rounded-xl border border-gray-700">
+            <h2 class="text-2xl font-bold text-white mb-3">Laptime-Distributionanalysis & Quantiles</h2>
+            <p class="text-sm text-gray-300 mb-4">Data will be read from Table (Laptime in ms and Name(s)).</p>
 
-        <!-- Tabellen-Container -->
+            <div class="flex flex-col md:flex-row md:items-center gap-4">
+              <!--  <label class="flex items-center gap-2 bg-red-50/5 p-3 rounded-lg border border-red-800/20">
+                    <input type="checkbox" id="removeOutliers" checked class="h-5 w-5" />
+                    <span class="text-sm text-gray-200">Remove slow outliers (Q3 + 1.5 × IQR)</span> 
+                </label>
+
+               <button id="analyzeButton" class="ml-auto bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-indigo-700"
+                        onclick="analyzeLaptimesFromSheet()">
+                    Daten analysieren & visualisieren
+                /button> -->
+            </div>
+
+            <div id="statusMessage" class="text-red-400 font-medium mt-4 hidden"></div>
+
+            <div id="driverSearchArea" class="hidden my-6 p-4 bg-white/3 rounded-lg border border-gray-700">
+                <h3 class="text-lg font-medium text-white mb-2">Driver-Comparison</h3>
+                <div class="relative">
+                    <input type="text" id="driverSearchInput" oninput="showSuggestions()" placeholder="Search Drivername..."
+                           class="w-full p-3 rounded-lg bg-gray-900 text-white" />
+                    <ul id="driverSuggestions" class="absolute z-30 w-full bg-gray-800 border border-gray-700 rounded shadow max-h-40 overflow-y-auto hidden mt-1 text-sm"></ul>
+                </div>
+                <div id="selectedDriversContainer" class="mt-4 flex flex-wrap gap-2"></div>
+            </div>
+
+            <div id="statsTable" class="hidden grid grid-cols-3 gap-4 text-center mb-4">
+                <div class="p-4 bg-gray-800 rounded-lg shadow-sm">
+                    <p class="text-xs text-gray-400">Certified drivers</p>
+                    <p id="countOutput" class="text-2xl font-bold text-white">0</p>
+                </div>
+                <div class="p-4 bg-gray-800 rounded-lg shadow-sm border border-red-700/30">
+                    <p class="text-xs text-gray-400">Removed outliers</p>
+                    <p id="outliersRemovedCountOutput" class="text-2xl font-bold text-red-400">0</p>
+                </div>
+                <div class="p-4 bg-gray-800 rounded-lg shadow-sm">
+                    <p class="text-xs text-gray-400">Median (50. Perzentile)</p>
+                    <p id="medianOutput" class="text-2xl font-bold text-white">-</p>
+                </div>
+            </div>
+
+            <div id="chartArea" class="hidden">
+                <h3 class="text-lg font-medium text-white mb-2">Smooth Curve</h3>
+                <div id="chartContainer" class="relative w-full border border-gray-700 rounded-lg p-1 bg-gray-900">
+                    <canvas id="laptimeChart"></canvas>
+                </div>
+                <div id="chartLegend" class="mt-2 text-sm text-gray-300">
+                    <span class="inline-block w-4 h-2 bg-indigo-600 mr-1 rounded"></span> Total distribution |
+                    <span id="legendDrivers" class="text-gray-200"></span>
+                </div>
+
+                <div id="quantileResults" class="mt-4 bg-gray-900/60 p-4 rounded-lg border border-gray-700">
+                    <h4 class="text-sm text-gray-200 mb-2">Quantiles of total distribution</h4>
+                    <div class="grid grid-cols-3 gap-2 text-sm">
+                        <div class="p-2 bg-gray-800 rounded-md">
+                            <p class="text-xs text-gray-400">25. Perzentile (Q1)</p>
+                            <p id="q25Output" class="text-lg font-bold text-green-400">-</p>
+                        </div>
+                        <div class="p-2 bg-gray-800 rounded-md border border-indigo-600/30">
+                            <p class="text-xs text-gray-400">50. Perzentile (Median)</p>
+                            <p id="q50Output" class="text-lg font-bold text-indigo-400">-</p>
+                        </div>
+                        <div class="p-2 bg-gray-800 rounded-md">
+                            <p class="text-xs text-gray-400">75. Perzentile (Q3)</p>
+                            <p id="q75Output" class="text-lg font-bold text-green-400">-</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Button: Mehr laden (wird sichtbar wenn > LOAD_STEP) -->
+        <div class="flex justify-end max-w-7xl xl:max-w-[1550px] mx-auto mt-4">
+            <button id="loadMoreButton"
+                    class="hidden mb-4 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-lg shadow">
+                Weitere 500 laden
+            </button>
+        </div>
+
+        <!-- Hauptdaten-Tabelle -->
         <div id="data-container" class="hidden">
-            <h2 class="text-2xl font-semibold mb-2">Driver Ranking</h2>
-            <table class="min-w-full bg-gray-900 rounded-lg shadow-lg">
-                <thead class="bg-gray-800 text-gray-300 text-sm uppercase">
-                    <tr>
-                        <th class="px-2 py-3">#</th>
-                        <th class="px-2 py-3">Best Lap</th>
-                        <th class="px-2 py-3">Names</th>
-                        <th class="px-2 py-3">Steam</th>
-                        <th class="px-2 py-3">Date</th>
-                        <th class="px-2 py-3">Session</th>
-                        <th class="px-2 py-3">Car</th>
-                        <th class="px-2 py-3">Class</th>
-                    </tr>
-                </thead>
-                <tbody id="driver-list"></tbody>
-            </table>
-
-            <div class="mt-2 text-gray-400 text-sm">
-                Last updated: <span id="lastUpdated"></span>
+            <div class="table-container bg-gray-900 rounded-xl shadow-lg border border-gray-700 p-4">
+                <table class="min-w-full divide-y divide-gray-700">
+                    <thead class="bg-gray-800">
+                        <tr>
+                            <th class="px-2 py-3 text-center text-lg font-bold text-gray-300 uppercase tracking-wider">Pos</th>
+                            <th class="px-2 py-3 text-center text-lg font-bold text-gray-300 uppercase tracking-wider">Laptime</th>
+                            <th class="px-2 py-3 text-center text-lg font-bold text-gray-300 uppercase tracking-wider">Name(s)</th>
+                            <th class="px-2 py-3 text-center text-lg font-bold text-gray-300 uppercase tracking-wider">Steam Profile</th>
+                            <th class="px-2 py-3 text-center text-lg font-bold text-gray-300 uppercase tracking-wider">Date (UTC)</th>
+                            <th class="px-2 py-3 text-center text-lg font-bold text-gray-300 uppercase tracking-wider">Session</th>
+                            <th class="px-2 py-3 text-center text-lg font-bold text-gray-300 uppercase tracking-wider">Car</th>
+                            <th class="px-2 py-3 text-center text-lg font-bold text-gray-300 uppercase tracking-wider">Class</th>
+                        </tr>
+                    </thead>
+                    <tbody id="driver-list" class="bg-gray-900 divide-y divide-gray-700 text-white"></tbody>
+                </table>
             </div>
+
+            <footer class="mt-4 text-center text-sm text-gray-500">
+                <p>Zuletzt geladen: <span id="last-updated">Unbekannt</span></p>
+            </footer>
         </div>
-
-        <!-- Analyse Container -->
-        <div id="analysis-container" class="hidden mt-10">
-            <h2 class="text-2xl font-semibold mb-4">Analyse</h2>
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="bg-gray-900 p-4 rounded-lg shadow-lg">
-                    <h3 class="text-xl font-semibold mb-3">Schnellster Fahrer</h3>
-                    <p id="fastest-driver" class="text-indigo-400"></p>
-                </div>
-
-                <div class="bg-gray-900 p-4 rounded-lg shadow-lg">
-                    <h3 class="text-xl font-semibold mb-3">Durchschnitt Bestzeiten</h3>
-                    <p id="avg-times" class="text-indigo-400"></p>
-                </div>
-
-                <div class="bg-gray-900 p-4 rounded-lg shadow-lg">
-                    <h3 class="text-xl font-semibold mb-3">Fahreranzahl</h3>
-                    <p id="driver-count" class="text-indigo-400"></p>
-                </div>
-            </div>
-        </div>
-
     </div>
 
-    <script>
-        // --------------------------
-        // Load More Globals
-        // --------------------------
-        let fullDriverData = [];
-        let renderIndex = 0;
-        const LOAD_STEP = 500;
+<script>
+    // *** WICHTIG: ERSETZEN SIE DIESEN PLATZHALTER DURCH IHRE ECHTE GOOGLE SPREADSHEET ID ***
+    const SPREADSHEET_ID = '115Waas-6pWhaxZqivnxFPEkD0K423idDQo00ZnmdYnY'; // BITTE ERSETZEN
+    const SHEETS_API_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json&tq=select A, B, C, D, E, F, G, H&t=${new Date().getTime()}`;
 
+    // DOM-Elemente
+    const driverList = document.getElementById('driver-list');
+    const loadingElement = document.getElementById('loading');
+    const dataContainer = document.getElementById('data-container');
+    const errorMessage = document.getElementById('error-message');
+    const lastUpdatedElement = document.getElementById('last-updated');
 
-        // --------------------------
-        // API Laden
-        // --------------------------
-        async function loadAndRender(event) {
-            event.preventDefault();
+    // Analyse-Globals
+    let allDriverData = []; // [{time: ms, name: 'NameString', steam_id: '...'}, ...]
+    let finalMsTimes = [];  // bereinigte Zeiten
+    let uniqueDrivers = []; // eindeutige Aliase (strings)
+    let selectedDrivers = []; // [{name,color},...]
+    const driverColors = ['#f59e0b', '#10b981', '#ef4444', '#6366f1', '#a855f7', '#ec4899'];
+    let driverColorIndex = 0;
 
-            const clientKey = document.getElementById("clientKey").value.trim();
-            const clientSecret = document.getElementById("clientSecret").value.trim();
-            const sessionType = document.getElementById("sessionType").value.trim();
-            const carClass = document.getElementById("carClass").value.trim();
-            const car = document.getElementById("car").value.trim();
+    // ---------- NEW: Lade-steuerung ----------
+    let fullDriverData = [];   // vollständiger Sheet-Inhalt
+    let renderIndex = 0;       // wie viele wir bereits gerendert haben
+    const LOAD_STEP = 500;     // Anzahl pro Ladeschritt
 
-            if (!clientKey || !clientSecret) {
-                alert("Bitte Client Key und Secret eingeben.");
-                return;
+    // Canvas
+    const chartCanvas = document.getElementById('laptimeChart');
+    const ctx = chartCanvas ? chartCanvas.getContext('2d') : null;
+
+    // ---------- Hilfsfunktionen ----------
+    function formatLapTime(ms) {
+        if (!ms || ms === 2147483647) return 'N/A';
+        const totalSeconds = Math.floor(ms / 1000);
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        const milliseconds = ms % 1000;
+        return `${minutes}:${String(seconds).padStart(2,'0')}.${String(milliseconds).padStart(3,'0')}`;
+    }
+
+    function formatDateTime(utcDateString) {
+        if (!utcDateString || utcDateString === 'Unbekannt') return 'Unbekannt';
+        try {
+            const date = new Date(utcDateString.replace('Z',''));
+            if (isNaN(date)) return utcDateString;
+            const options = { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', timeZoneName:'short' };
+            return date.toLocaleDateString('de-DE', options);
+        } catch (e) { return 'Fehlerhaftes Datum'; }
+    }
+
+    function quantile(sortedData, q) {
+        const pos = (sortedData.length - 1) * q;
+        const base = Math.floor(pos);
+        const rest = pos - base;
+        if (base < 0) return sortedData[0];
+        if (base >= sortedData.length - 1) return sortedData[sortedData.length - 1];
+        return sortedData[base] + rest * (sortedData[base + 1] - sortedData[base]);
+    }
+
+    /** Entferne einzelne isolierte Ausreißer (Heuristik) */
+    function removeSinglePointOutliers(sortedTimes) {
+        if (sortedTimes.length < 5) return sortedTimes.slice(); // zu klein zum aussortieren
+        const outIdx = new Set();
+        for (let i = 1; i < sortedTimes.length - 1; i++) {
+            const left = sortedTimes[i-1];
+            const mid = sortedTimes[i];
+            const right = sortedTimes[i+1];
+            const leftDiff = Math.abs(mid - left);
+            const rightDiff = Math.abs(right - mid);
+            const neighAvgDiff = (Math.abs(right - left)) / 2;
+            const relativeThreshold = 0.02 * mid; // 2% der Zeit
+            // Wenn der Punkt deutlich (mehr als 'relativeThreshold') von beiden Nachbarn abweicht
+            // UND die Abweichungen größer sind als typische Nachbarschafts-Differenz -> einzelausreißer
+            if (leftDiff > relativeThreshold && rightDiff > relativeThreshold && (leftDiff > 2 * neighAvgDiff || rightDiff > 2 * neighAvgDiff)) {
+                outIdx.add(i);
+            }
+        }
+        // filter out indices
+        return sortedTimes.filter((_, i) => !outIdx.has(i));
+    }
+
+    // ---------- Daten-Parsing aus Google Sheets ----------
+    function parseGoogleSheetData(gvizData) {
+        const dataTable = gvizData.table;
+        if (!dataTable || !dataTable.rows || dataTable.cols.length === 0) return [];
+
+        const data = dataTable.rows.map(row => {
+            const cells = row.c;
+            const steamIdRaw = String(cells[0]?.v || '');
+            const steamId = steamIdRaw.startsWith("'") ? steamIdRaw.substring(1) : steamIdRaw;
+            const bestLapMs = cells[1]?.v || 999999999;
+            const bestLapDisplay = cells[2]?.v || formatLapTime(bestLapMs);
+            const namesUsedRaw = cells[3]?.v || '';
+            const bestLapDateUtc = cells[4]?.v || 'Unbekannt';
+            const sessionType = cells[5]?.v || 'Unbekannt';
+            const car = cells[6]?.v || 'Unbekannt';
+            const driverClass = cells[7]?.v || 'Unbekannt';
+
+            return {
+                steam_id: String(steamId),
+                best_lap_ms: bestLapMs,
+                best_lap_display: bestLapDisplay,
+                names_used: namesUsedRaw.split(',').map(n => n.trim()).filter(n => n.length > 0),
+                names_raw: namesUsedRaw,
+                best_lap_date_utc: bestLapDateUtc,
+                session_type: sessionType,
+                car: car,
+                driver_class: driverClass
+            };
+        }).filter(driver => driver.steam_id);
+
+        data.sort((a,b) => a.best_lap_ms - b.best_lap_ms);
+        return data;
+    }
+
+    // ---------- Laden & Rendern ----------
+    async function loadAndRender() {
+        loadingElement.classList.remove('hidden');
+        dataContainer.classList.add('hidden');
+        errorMessage.classList.add('hidden');
+
+        try {
+            const response = await fetch(SHEETS_API_URL);
+            if (!response.ok) throw new Error(`HTTP-Fehler! Status: ${response.status}`);
+            const text = await response.text();
+            const jsonStart = text.indexOf('{');
+            const jsonEnd = text.lastIndexOf('}');
+            const jsonString = text.substring(jsonStart, jsonEnd + 1);
+            const gvizResponse = JSON.parse(jsonString);
+
+            if (gvizResponse.status !== 'ok') {
+                throw new Error(`API Status Fehler: ${gvizResponse.errors ? gvizResponse.errors.map(e => e.message).join('; ') : 'Unbekannter Fehler'}`);
             }
 
-            const url =
-                `https://client-portal-api.ekarting.club/api/data/ranking?clientKey=${clientKey}&clientSecret=${clientSecret}` +
-                `&sessionType=${sessionType}&carClass=${carClass}&car=${car}`;
+            const driverData = parseGoogleSheetData(gvizResponse);
 
-            const response = await fetch(url);
-            const json = await response.json();
-            const driverData = json.result || [];
-
-            const table = document.getElementById("data-container");
-            const driverList = document.getElementById("driver-list");
-
-            table.classList.remove("hidden");
-
-            // --------------------
-            // Speichere Daten & erster Render
-            // --------------------
+            // -------------------------
+            // NEU: chunked rendering
+            // -------------------------
             fullDriverData = driverData;
             renderIndex = 0;
-            driverList.innerHTML = "";
+            driverList.innerHTML = '';
 
+            // Erste Charge rendern
             renderNextChunk();
 
+            // Button einblenden falls mehr als LOAD_STEP Zeilen existieren
             if (fullDriverData.length > LOAD_STEP) {
-                document.getElementById("loadMoreButton").classList.remove("hidden");
+                document.getElementById('loadMoreButton').classList.remove('hidden');
+            } else {
+                document.getElementById('loadMoreButton').classList.add('hidden');
             }
 
-            document.getElementById("lastUpdated").textContent =
-                new Date().toLocaleString("de-DE");
+            lastUpdatedElement.textContent = formatDateTime(new Date().toISOString());
+            loadingElement.classList.add('hidden');
+            dataContainer.classList.remove('hidden');
+
+            // Wichtig: prepareAnalysisData wird innerhalb renderNextChunk mit den aktuell
+            // gerenderten Zeilen aufgerufen (prepareAnalysisData erwartet ein Array).
+        } catch (error) {
+            console.error("Daten-Rendering-Fehler:", error);
+            loadingElement.classList.add('hidden');
+            errorMessage.classList.remove('hidden');
+        }
+    }
+
+    // ---------- NEUE Funktion: rendere den nächsten Chunk ----------
+    function renderNextChunk() {
+        const start = renderIndex;
+        const end = Math.min(renderIndex + LOAD_STEP, fullDriverData.length);
+
+        for (let i = start; i < end; i++) {
+            const driver = fullDriverData[i];
+            const row = document.createElement('tr');
+            const namesString = driver.names_used.length > 0 ? driver.names_used.join('<br>') : 'Unbekannt';
+            const rowClass = i % 2 === 0 ? 'bg-gray-800 hover:bg-gray-700' : 'bg-gray-900 hover:bg-gray-800';
+            row.className = rowClass + ' transition duration-150 ease-in-out';
+
+            let bestTimeClass = 'text-white font-mono';
+            if (i === 0) bestTimeClass = 'text-yellow-600 font-extrabold text-lg';
+            else bestTimeClass = 'text-green-600 font-extrabold text-lg';
+
+            row.innerHTML = `
+                <td class="px-2 py-4 whitespace-nowrap text-center text-sm text-gray-400">${i + 1}</td>
+                <td class="px-2 py-4 whitespace-nowrap text-center text-sm ${bestTimeClass}">${driver.best_lap_display}</td>
+                <td class="px-2 py-4 text-sm text-center text-gray-300 max-w-xs truncate">${namesString}</td>
+                <td class="px-2 py-4 whitespace-nowrap text-center text-sm">
+                    <a href="https://steamcommunity.com/profiles/${driver.steam_id}" target="_blank" 
+                        class="text-blue-500 hover:text-blue-400 font-medium transition duration-150 ease-in-out"
+                        title="SteamID: ${driver.steam_id}">
+                        View Profile
+                    </a>
+                </td>
+                <td class="px-2 py-4 whitespace-nowrap text-center text-sm text-gray-400">${formatDateTime(driver.best_lap_date_utc)}</td>
+                <td class="px-2 py-4 whitespace-nowrap text-center text-sm text-gray-300">${driver.session_type}</td>
+                <td class="px-2 py-4 whitespace-nowrap text-center text-sm text-gray-300">${driver.car}</td>
+                <td class="px-2 py-4 whitespace-nowrap text-center text-sm text-gray-300">${driver.driver_class}</td>
+            `;
+            driverList.appendChild(row);
         }
 
-        // --------------------------
-        // Rendering in 500er Blöcken
-        // --------------------------
-        function renderNextChunk() {
-            const driverList = document.getElementById("driver-list");
-            const end = Math.min(renderIndex + LOAD_STEP, fullDriverData.length);
+        renderIndex = end;
 
-            for (let i = renderIndex; i < end; i++) {
-                const driver = fullDriverData[i];
+        // Wenn alles geladen → Button ausblenden
+        if (renderIndex >= fullDriverData.length) {
+            document.getElementById('loadMoreButton').classList.add('hidden');
+        }
 
-                const row = document.createElement("tr");
-                const namesString =
-                    driver.names_used.length > 0 ? driver.names_used.join("<br>") : "Unbekannt";
+        // Analyse für aktuell geladene Zeilen vorbereiten
+        prepareAnalysisData(fullDriverData.slice(0, renderIndex));
+    }
 
-                const rowClass =
-                    i % 2 === 0
-                        ? "bg-gray-800 hover:bg-gray-700"
-                        : "bg-gray-900 hover:bg-gray-800";
+    // ---------- Vorbereitung der Analyse-Daten (automatisch) ----------
+    function prepareAnalysisData(driverData) {
+        allDriverData = [];
+        const uniqueNamesSet = new Set();
 
-                row.className = rowClass;
+        driverData.forEach(row => {
+            const ms = Number(row.best_lap_ms);
+            // Filtere ungültige Zeiten
+            if (!ms || isNaN(ms) || ms === 2147483647 || ms <= 0) return;
 
-                let bestTimeClass =
-                    i === 0
-                        ? "text-yellow-600 font-extrabold text-lg"
-                        : "text-green-600 font-extrabold text-lg";
+            // names_raw enthält eventuell mehrere Aliase kommasepariert
+            const nameString = row.names_raw || row.names_used.join(',');
+            allDriverData.push({ time: ms, name: nameString, steam_id: row.steam_id });
 
-                row.innerHTML = `
-                    <td class="px-2 py-4 text-center">${i + 1}</td>
-                    <td class="px-2 py-4 text-center ${bestTimeClass}">${driver.best_lap_display}</td>
-                    <td class="px-2 py-4 text-center text-gray-300">${namesString}</td>
-                    <td class="px-2 py-4 text-center">
-                        <a class="text-blue-500 hover:text-blue-400" target="_blank"
-                            href="https://steamcommunity.com/profiles/${driver.steam_id}">
-                            View Profile
-                        </a>
-                    </td>
-                    <td class="px-2 py-4 text-center text-gray-300">${driver.best_lap_date_utc}</td>
-                    <td class="px-2 py-4 text-center text-gray-300">${driver.session_type}</td>
-                    <td class="px-2 py-4 text-center text-gray-300">${driver.car}</td>
-                    <td class="px-2 py-4 text-center text-gray-300">${driver.driver_class}</td>
-                `;
+            // Split Aliase in unique set
+            nameString.split(',').map(n => n.trim()).filter(n => n.length>0).forEach(n => uniqueNamesSet.add(n));
+        });
 
-                driverList.appendChild(row);
+        uniqueDrivers = Array.from(uniqueNamesSet).sort();
+
+        // UI freischalten
+        document.getElementById('analysis-ui').classList.remove('hidden');
+
+        // Standardmäßig: finale Zeiten = alle Zeiten (noch nicht gefiltert)
+        finalMsTimes = allDriverData.map(d => d.time).sort((a,b)=>a-b);
+
+        // Reset chart/status
+        document.getElementById('statusMessage').classList.add('hidden');
+        document.getElementById('driverSearchArea').classList.add('hidden');
+        selectedDrivers = [];
+        driverColorIndex = 0;
+        updateSelectedDriversUI();
+        // ✅ NEU: automatisch analysieren, wenn Daten fertig sind
+        analyzeLaptimesFromSheet();
+    }
+
+    // ---------- Analyse (wird über Button ausgelöst, benutzt bereits geladenes allDriverData) ----------
+    function analyzeLaptimesFromSheet() {
+        const statusMessage = document.getElementById('statusMessage');
+        const statsTable = document.getElementById('statsTable');
+        const chartArea = document.getElementById('chartArea');
+        const driverSearchArea = document.getElementById('driverSearchArea');
+        const removeOutliersElement = document.getElementById('removeOutliers');
+        const removeOutliersChecked = removeOutliersElement ? removeOutliersElement.checked : false;
+
+        statusMessage.textContent = '';
+        statusMessage.classList.add('hidden');
+        statsTable.classList.add('hidden');
+        chartArea.classList.add('hidden');
+        driverSearchArea.classList.add('hidden');
+
+        if (!allDriverData || allDriverData.length < 3) {
+            statusMessage.textContent = 'Nicht genügend gültige Zeit-Name-Paare vorhanden (mindestens 3 erforderlich).';
+            statusMessage.classList.remove('hidden');
+            return;
+        }
+
+        // 1. valide Zeiten (bereits vom Sheet gefiltert)
+        let validMsTimes = allDriverData.map(d => d.time).sort((a,b)=>a-b);
+        const initialCount = validMsTimes.length;
+
+        // 2. Entferne Einzel-Ausreißer (Heuristik)
+        let cleanedTimes = removeSinglePointOutliers(validMsTimes);
+
+        // 3. Optional: Entferne langsame Ausreißer via IQR
+         let outliersRemovedCount = initialCount - cleanedTimes.length;
+        //if (removeOutliersChecked && cleanedTimes.length >= 4) {
+            const q1_temp = quantile(cleanedTimes, 0.25);
+            const q3_temp = quantile(cleanedTimes, 0.75);
+            const iqr = q3_temp - q1_temp;
+            const upperFence = q3_temp + 2.5 * iqr;
+            const cleanedByIQR = cleanedTimes.filter(t => t <= upperFence);
+            outliersRemovedCount = initialCount - cleanedByIQR.length;
+            cleanedTimes = cleanedByIQR;
+            //if (cleanedTimes.length < 3) {
+              //  document.getElementById('statusMessage').textContent = `ACHTUNG: Nach Entfernen von ${outliersRemovedCount} Ausreißern zu wenig Zeiten übrig.`;
+               // document.getElementById('statusMessage').classList.remove('hidden');
+                //return;
+           // }
+        //}
+
+        finalMsTimes = cleanedTimes;
+
+        // 4. Quantile
+        const count = finalMsTimes.length;
+        const q25 = quantile(finalMsTimes, 0.25);
+        const q50 = quantile(finalMsTimes, 0.50);
+        const q75 = quantile(finalMsTimes, 0.75);
+
+        document.getElementById('countOutput').textContent = count;
+        document.getElementById('medianOutput').textContent = formatLapTime(q50);
+        document.getElementById('outliersRemovedCountOutput').textContent = outliersRemovedCount;
+        document.getElementById('q25Output').textContent = formatLapTime(q25);
+        document.getElementById('q50Output').textContent = formatLapTime(q50);
+        document.getElementById('q75Output').textContent = formatLapTime(q75);
+
+        statsTable.classList.remove('hidden');
+        chartArea.classList.remove('hidden');
+        driverSearchArea.classList.remove('hidden');
+
+        // Chart zeichnen (inkl. Fahrerlinien)
+        drawChart(finalMsTimes, q25, q50, q75);
+    }
+
+    // ---------- Fahrer-Suche und Auswahl ----------
+    function showSuggestions() {
+        const input = document.getElementById('driverSearchInput').value.toLowerCase().trim();
+        const suggestionsList = document.getElementById('driverSuggestions');
+        suggestionsList.innerHTML = '';
+
+        if (input.length < 2) {
+            suggestionsList.classList.add('hidden'); return;
+        }
+        const filtered = uniqueDrivers.filter(d => d.toLowerCase().includes(input)).slice(0,10);
+        if (filtered.length === 0) { suggestionsList.classList.add('hidden'); return; }
+
+        filtered.forEach(name => {
+            const li = document.createElement('li');
+            li.className = 'p-2 cursor-pointer hover:bg-gray-700';
+            li.textContent = name;
+            li.onclick = () => addSelectedDriver(name);
+            suggestionsList.appendChild(li);
+        });
+        suggestionsList.classList.remove('hidden');
+    }
+
+    function addSelectedDriver(driverName) {
+        if (selectedDrivers.some(d => d.name === driverName)) return;
+        const color = driverColors[driverColorIndex % driverColors.length];
+        driverColorIndex++;
+        selectedDrivers.push({ name: driverName, color });
+        document.getElementById('driverSearchInput').value = '';
+        document.getElementById('driverSuggestions').classList.add('hidden');
+        updateSelectedDriversUI();
+        // Chart neu zeichnen
+        const q25 = quantile(finalMsTimes, 0.25);
+        const q50 = quantile(finalMsTimes, 0.50);
+        const q75 = quantile(finalMsTimes, 0.75);
+        drawChart(finalMsTimes, q25, q50, q75);
+    }
+
+    function removeSelectedDriver(driverName) {
+        selectedDrivers = selectedDrivers.filter(d => d.name !== driverName);
+        updateSelectedDriversUI();
+        const q25 = quantile(finalMsTimes, 0.25);
+        const q50 = quantile(finalMsTimes, 0.50);
+        const q75 = quantile(finalMsTimes, 0.75);
+        drawChart(finalMsTimes, q25, q50, q75);
+    }
+
+    function updateSelectedDriversUI() {
+        const container = document.getElementById('selectedDriversContainer');
+        const legend = document.getElementById('legendDrivers');
+        container.innerHTML = ''; legend.innerHTML = '';
+
+        selectedDrivers.forEach(driver => {
+            const chip = document.createElement('span');
+            chip.className = 'inline-flex items-center text-xs font-semibold px-3 py-1 rounded-full text-white cursor-pointer';
+            chip.style.backgroundColor = driver.color;
+            chip.textContent = driver.name;
+            chip.onclick = () => removeSelectedDriver(driver.name);
+
+            const removeIcon = document.createElement('span');
+            removeIcon.className = 'ml-1.5 font-bold';
+            removeIcon.innerHTML = '&times;';
+            chip.appendChild(removeIcon);
+            container.appendChild(chip);
+
+            // Zeit unter dem Fahrernamen anzeigen
+            const driverEntries = allDriverData.filter(d =>
+                d.name.split(',').map(n => n.trim()).some(n => n === driver.name)
+            );
+            const bestMs = driverEntries.length > 0 ? Math.min(...driverEntries.map(d => d.time)) : null;
+            const bestFormatted = bestMs ? formatLapTime(bestMs) : '-';
+            
+            const timeElement = document.createElement('div');
+            timeElement.className = 'text-gray-300 text-xs mt-1';
+            timeElement.textContent = bestFormatted;
+            container.appendChild(timeElement);
+
+            const legendItem = document.createElement('span');
+            legendItem.className = 'mr-2 text-sm text-gray-300';
+            legendItem.innerHTML = `<span class="inline-block w-4 h-2 mr-1 rounded" style="background-color:${driver.color};"></span> ${driver.name}`;
+            legend.appendChild(legendItem);
+        });
+    }
+
+    // ---------- Charting (KDE-like) ----------
+    function resizeCanvas() {
+        if (!chartCanvas) return;
+        const parent = chartCanvas.parentNode;
+        chartCanvas.width = parent.clientWidth;
+        chartCanvas.height = Math.max(220, parent.clientHeight - 10);
+    }
+
+    window.addEventListener('resize', () => {
+        resizeCanvas();
+        if (finalMsTimes && finalMsTimes.length > 0) {
+            const q25 = quantile(finalMsTimes, 0.25);
+            const q50 = quantile(finalMsTimes, 0.50);
+            const q75 = quantile(finalMsTimes, 0.75);
+            drawChart(finalMsTimes, q25, q50, q75);
+        }
+    });
+
+    function getSmoothDistribution(times, minTime, maxTime) {
+        if (!times || times.length===0) return [];
+        const range = maxTime - minTime;
+        const resolution = 140;
+        const step = range / resolution;
+        const bandwidth = range / Math.max(8, Math.sqrt(times.length) * 1.5);
+        const distribution = [];
+        for (let i=0;i<=resolution;i++){
+            const timeX = minTime + i*step;
+            let density = 0;
+            times.forEach(t => {
+                const distance = Math.abs(t - timeX);
+                density += Math.exp(-0.5 * (distance / bandwidth) ** 2);
+            });
+            distribution.push({ x: timeX, y: density });
+        }
+        return distribution;
+    }
+
+    function msToTime(ms) {
+        if (!isFinite(ms)) return '-';
+        const totalSeconds = ms / 1000;
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        return `${minutes}:${seconds.toFixed(3).padStart(6,'0')}`;
+    }
+
+    function drawChart(data, q25, q50, q75) {
+        resizeCanvas();
+        if (!ctx || !data || data.length===0) return;
+        ctx.clearRect(0,0,chartCanvas.width,chartCanvas.height);
+
+        const minTime = data[0];
+        const maxTime = data[data.length-1];
+        const timeRange = maxTime - minTime;
+        const padding = { top: 12, bottom: 48, left: 64, right: 18 };
+        const chartWidth = chartCanvas.width - padding.left - padding.right;
+        const chartHeight = chartCanvas.height - padding.top - padding.bottom;
+
+        const mainDistribution = getSmoothDistribution(data, minTime, maxTime);
+        let maxDensity = 0;
+        mainDistribution.forEach(p => { if (p.y > maxDensity) maxDensity = p.y; });
+
+        // Prepare selected driver distributions and best times
+        const driverDistributions = [];
+        const driverBestTimes = []; // {name, color, bestMs}
+        selectedDrivers.forEach(driver => {
+            const driverTimes = allDriverData
+                .filter(d => d.name.split(',').map(n=>n.trim()).some(n => n === driver.name))
+                .map(d => d.time)
+                .sort((a,b)=>a-b);
+            if (driverTimes.length > 0) {
+                const dist = getSmoothDistribution(driverTimes, minTime, maxTime);
+                driverDistributions.push({ ...driver, distribution: dist });
+                driverBestTimes.push({ name: driver.name, color: driver.color, bestMs: Math.min(...driverTimes) });
+                dist.forEach(p => { if (p.y > maxDensity) maxDensity = p.y; });
             }
+        });
 
-            renderIndex = end;
+        // Helper x transform
+        const xToPx = (time) => padding.left + ((time - minTime) / timeRange) * chartWidth;
 
-            if (renderIndex >= fullDriverData.length) {
-                document.getElementById("loadMoreButton").classList.add("hidden");
+        // Draw axes
+        ctx.strokeStyle = '#374151'; ctx.fillStyle = '#9ca3af'; ctx.font = '11px Inter, sans-serif';
+        ctx.beginPath(); ctx.moveTo(padding.left, chartCanvas.height - padding.bottom); ctx.lineTo(chartCanvas.width - padding.right, chartCanvas.height - padding.bottom); ctx.stroke();
+
+        // X labels: min and max and median
+        ctx.textAlign = 'left'; ctx.fillStyle = '#9ca3af'; ctx.fillText(msToTime(minTime), padding.left, chartCanvas.height - padding.bottom + 18);
+        ctx.textAlign = 'right'; ctx.fillText(msToTime(maxTime), chartCanvas.width - padding.right, chartCanvas.height - padding.bottom + 18);
+        ctx.textAlign = 'center'; ctx.fillText(`Median: ${msToTime(q50)}`, xToPx(q50), chartCanvas.height - padding.bottom + 18);
+
+        // Draw curve function
+        const drawCurve = (distribution, color, isFill) => {
+            if (!distribution || distribution.length===0) return;
+            ctx.beginPath();
+            ctx.strokeStyle = color; ctx.lineWidth = 2;
+            // Fill with translucent color when requested
+            const fillColor = color + '40'; // append alpha-ish hex (not perfect but works on many browsers)
+            ctx.moveTo(padding.left, chartCanvas.height - padding.bottom);
+            distribution.forEach((p, i) => {
+                const x = xToPx(p.x);
+                const y = chartCanvas.height - padding.bottom - (p.y / maxDensity) * chartHeight;
+                ctx.lineTo(x, y);
+            });
+            if (isFill) {
+                ctx.lineTo(chartCanvas.width - padding.right, chartCanvas.height - padding.bottom);
+                ctx.closePath();
+                ctx.fillStyle = fillColor;
+                ctx.fill();
             }
+            ctx.stroke();
+        };
 
-            prepareAnalysisData(fullDriverData.slice(0, renderIndex));
+        // Draw main distribution (indigo)
+        drawCurve(mainDistribution, '#4f46e5', true);
+
+        // Draw driver distributions (lines)
+        driverDistributions.forEach(d => drawCurve(d.distribution, d.color, false));
+
+        // Draw quantile lines
+        const quantiles = [{time:q25, color:'#10b981'}, {time:q50, color:'#4f46e5'}, {time:q75, color:'#10b981'}];
+        quantiles.forEach(q => {
+            const x = xToPx(q.time);
+            ctx.strokeStyle = q.color; ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.setLineDash([6,4]); ctx.moveTo(x, padding.top); ctx.lineTo(x, chartCanvas.height - padding.bottom); ctx.stroke(); ctx.setLineDash([]);
+        });
+
+        // Draw vertical lines for selected drivers at their best times
+        driverBestTimes.forEach(d => {
+            const x = xToPx(d.bestMs);
+            ctx.strokeStyle = d.color; ctx.lineWidth = 1.8;
+            ctx.beginPath(); ctx.setLineDash([4,3]); ctx.moveTo(x, padding.top); ctx.lineTo(x, chartCanvas.height - padding.bottom); ctx.stroke(); ctx.setLineDash([]);
+            // small label near top
+            ctx.fillStyle = d.color; ctx.font = '12px Inter, sans-serif'; ctx.textAlign = 'center';
+            ctx.fillText(d.name, x, padding.top - 2);
+            
+            // Bestzeit unter dem Strich anzeigen
+            ctx.fillStyle = '#d1d5db';
+            ctx.font = '16px Inter, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(msToTime(d.bestMs), x, chartCanvas.height - padding.bottom + 36);
+            
+        });
+    }
+
+    // ---------- Init ----------
+    window.onload = () => {
+        resizeCanvas();
+        // Button-Handler zum Laden weiterer Chunks
+        const loadMoreBtn = document.getElementById('loadMoreButton');
+        if (loadMoreBtn) {
+            loadMoreBtn.onclick = () => renderNextChunk();
         }
-
-        // --------------------------
-        // Analyse Daten
-        ----------------------------
-        function prepareAnalysisData(dataset) {
-            const analysisContainer = document.getElementById("analysis-container");
-            analysisContainer.classList.remove("hidden");
-
-            if (dataset.length === 0) return;
-
-            const fastest = dataset[0];
-            document.getElementById("fastest-driver").textContent =
-                fastest.names_used[0] + " – " + fastest.best_lap_display;
-
-            const avg =
-                dataset
-                    .map(d => d.best_lap_ms)
-                    .reduce((a, b) => a + b, 0) / dataset.length;
-
-            document.getElementById("avg-times").textContent =
-                (avg / 1000).toFixed(3) + "s";
-
-            document.getElementById("driver-count").textContent = dataset.length;
-        }
-
-        // --------------------------
-        // Button Events
-        // --------------------------
-        document.getElementById("apiForm").addEventListener("submit", loadAndRender);
-        document.getElementById("loadMoreButton").onclick = () => renderNextChunk();
-    </script>
-
+        loadAndRender();
+    };
+    document.addEventListener('DOMContentLoaded', () => {
+});
+</script>
 </body>
 </html>
