@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Globale Community-Karte | RaceNet</title>
+    <!-- Tailwind CSS laden -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Leaflet CSS für die Weltkarte -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <!-- Leaflet MarkerCluster CSS für die Pin-Gruppierung -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
+    <!-- Icons (lucide-react, hier simuliert durch Tailwind/Emojis) -->
+    <style>
+        /* Dark Mode Basisstil */
+        :root {
+            --map-height: calc(100vh - 80px); /* Höhe der Karte unterhalb der Kopfzeile */
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1a1a2e; /* Dunkler Hintergrund (Thema) */
+            color: #e4e4e7; /* Heller Text */
+        }
+        #map {
+            height: var(--map-height);
+            z-index: 10;
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        /* Styling für Leaflet-Marker (Custom Icon) */
+        .custom-pin {
+            background-color: #9333ea; /* Lila */
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid #c084fc;
+            box-shadow: 0 0 10px rgba(147, 51, 234, 0.7);
+            font-size: 10px;
+            font-weight: bold;
+        }
+        /* Hervorgehobener Pin-Stil */
+        .highlight-pin {
+            background-color: #f87171; /* Rot für Hervorhebung */
+            color: white;
+            border: 3px solid #fecaca;
+            width: 30px;
+            height: 30px;
+            line-height: 24px;
+            font-size: 14px;
+        }
+        /* Rennsport-Flaggen-Elemente */
+        .racing-flag {
+            background-image: linear-gradient(45deg, #1a1a2e 25%, transparent 25%),
+                              linear-gradient(-45deg, #1a1a2e 25%, transparent 25%),
+                              linear-gradient(45deg, transparent 75%, #1a1a2e 75%),
+                              linear-gradient(-45deg, transparent 75%, #1a1a2e 75%);
+            background-size: 10px 10px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+        }
+        /* Spezifisches Styling für die Sidebar-Pins */
+        .sidebar-pin {
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+        }
+        .sidebar-pin:hover {
+            background-color: #4c1d95; /* Dunkleres Lila bei Hover */
+            transform: translateX(5px);
+        }
+    </style>
+</head>
+<body class="antialiased h-screen flex flex-col">
+
+    <!-- Kopfzeile -->
+    <header class="bg-gray-900 shadow-xl p-4 flex justify-between items-center racing-flag">
+        <h1 class="text-3xl font-bold text-white tracking-widest">
+            <span class="text-purple-400">RaceNet</span> | Globale Community
+        </h1>
+        <button id="setPinButton"
+                class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg shadow-lg transition duration-300 ease-in-out transform hover:scale-105">
+            🏁 Nadel setzen
+        </button>
+    </header>
+
+    <!-- Hauptinhalt: Karte und Seitenleiste -->
+    <main class="flex flex-1 overflow-hidden p-4 space-x-4">
+        <!-- Seitenleiste für Nicknamen und Suche -->
+        <aside class="w-1/4 max-w-xs bg-gray-800 p-4 rounded-xl shadow-2xl flex flex-col space-y-4 overflow-y-auto">
+            <h2 class="text-xl font-semibold text-purple-400 border-b border-purple-500 pb-2">Benutzer (Pins: <span id="pinCount">0</span>)</h2>
+
+            <!-- Suchfeld Kontinent/Land -->
+            <div class="space-y-2">
+                <input type="text" id="searchLocationInput" placeholder="Suche Kontinent/Land..."
+                       class="w-full p-2 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:ring-purple-500 focus:border-purple-500 border-transparent">
+                <div id="searchResult" class="text-sm text-center font-medium"></div>
+            </div>
+
+            <!-- Nickname-Liste -->
+            <div id="nicknameList" class="space-y-1 overflow-y-auto flex-1">
+                <!-- Nicknamen werden hier eingefügt -->
+                <p id="noPinsMessage" class="text-gray-400 text-sm italic">Noch keine Pins gesetzt.</p>
+            </div>
+        </aside>
+
+        <!-- Kartenbereich -->
+        <section class="flex-1 min-w-0">
+            <div id="map" class="w-full rounded-xl"></div>
+        </section>
+    </main>
+
+    <!-- Modalfenster (für Nachrichten und Eingaben) -->
+    <div id="modal" class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center z-50">
+        <div class="bg-gray-800 p-6 rounded-xl shadow-2xl max-w-sm w-full space-y-4 border-2 border-purple-600">
+            <h3 id="modalTitle" class="text-xl font-bold text-purple-400"></h3>
+            <p id="modalMessage" class="text-white"></p>
+            <input type="text" id="modalInput" placeholder="Dein Nickname"
+                   class="w-full p-2 rounded-lg bg-gray-700 text-white placeholder-gray-400 hidden focus:ring-purple-500 focus:border-purple-500 border-transparent">
+            <div class="flex justify-end space-x-3">
+                <button id="modalCancel" class="bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded-lg transition duration-150">
+                    Abbrechen
+                </button>
+                <button id="modalConfirm" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg transition duration-150">
+                    Bestätigen
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet JS und MarkerCluster laden -->
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
+
+    <script>
+        // Allgemeine Konfiguration und Initialisierung
+        const mapElement = document.getElementById('map');
+        const setPinButton = document.getElementById('setPinButton');
+        const nicknameListDiv = document.getElementById('nicknameList');
+        const searchLocationInput = document.getElementById('searchLocationInput');
+        const searchResultDiv = document.getElementById('searchResult');
+        const pinCountSpan = document.getElementById('pinCount');
+        const noPinsMessage = document.getElementById('noPinsMessage');
+
+        // Modal Elemente
+        const modal = document.getElementById('modal');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalMessage = document.getElementById('modalMessage');
+        const modalInput = document.getElementById('modalInput');
+        const modalConfirm = document.getElementById('modalConfirm');
+        const modalCancel = document.getElementById('modalCancel');
+
+        let map;
+        let markers; // MarkerClusterGroup
+        let userPins = []; // Speichert alle Pin-Daten
+        let currentPinningNickname = null;
+        let highlightedMarker = null;
+        let geoJsonLayer = null; // Für die Highlight-Flächen
+
+        // --- Hilfsfunktionen für das Modal ---
+
+        /** Zeigt das Modal mit benutzerdefinierter Konfiguration an */
+        function showModal(title, message, isInput = false, confirmCallback = null) {
+            modalTitle.textContent = title;
+            modalMessage.textContent = message;
+
+            modalInput.value = '';
+            modalInput.classList.toggle('hidden', !isInput);
+
+            modalConfirm.onclick = () => {
+                const inputValue = isInput ? modalInput.value.trim() : null;
+                modal.classList.add('hidden');
+                if (confirmCallback) {
+                    confirmCallback(inputValue);
+                }
+            };
+            modalConfirm.textContent = isInput ? 'Weiter' : 'OK';
+
+            modalCancel.onclick = () => {
+                modal.classList.add('hidden');
+            };
+            modalCancel.classList.toggle('hidden', !isInput); // Abbrechen nur bei Eingabe anzeigen
+
+            modal.classList.remove('hidden');
+        }
+
+        // --- Datenverwaltung (ersetzt Google Sheets) ---
+
+        /** Lädt Pins aus dem localStorage */
+        function loadPins() {
+            try {
+                const storedPins = localStorage.getItem('raceNetUserPins');
+                if (storedPins) {
+                    userPins = JSON.parse(storedPins);
+                    console.log(`Pins geladen: ${userPins.length}`);
+                } else {
+                    // Startdaten für die Demo (simuliert Google Sheet-Daten)
+                    userPins = [
+                        { nickname: "TurboTom", lat: 52.5200, lng: 13.4050, country: "Deutschland", continent: "Europa" },
+                        { nickname: "SpeedySue", lat: 34.0522, lng: -118.2437, country: "USA", continent: "Nordamerika" },
+                        { nickname: "CircuitChris", lat: 35.6895, lng: 139.6917, country: "Japan", continent: "Asien" },
+                        { nickname: "ApexAnna", lat: -33.8688, lng: 151.2093, country: "Australien", continent: "Australien" },
+                        { nickname: "RallyRay", lat: -23.5505, lng: -46.6333, country: "Brasilien", continent: "Südamerika" },
+                        { nickname: "RaceRico", lat: 52.5200, lng: 13.4050, country: "Deutschland", continent: "Europa" }, // Überlappend
+                    ];
+                    savePins(); // Speichere die Startdaten
+                }
+            } catch (error) {
+                console.error("Fehler beim Laden der Pins:", error);
+                userPins = [];
+            }
+        }
+
+        /** Speichert Pins im localStorage */
+        function savePins() {
+            try {
+                localStorage.setItem('raceNetUserPins', JSON.stringify(userPins));
+            } catch (error) {
+                console.error("Fehler beim Speichern der Pins:", error);
+            }
+        }
+
+        /** Fügt einen neuen Pin hinzu */
+        function addPin(nickname, lat, lng, country, continent) {
+            if (userPins.some(p => p.nickname.toLowerCase() === nickname.toLowerCase())) {
+                showModal('Fehler', `Der Nickname "${nickname}" existiert bereits.`);
+                return;
+            }
+            userPins.push({ nickname, lat, lng, country, continent });
+            savePins();
+            updateMapAndSidebar();
+            showModal('Erfolg!', `Willkommen, ${nickname}! Dein Standort wurde erfolgreich gespeichert.`);
+        }
+
+        // --- Kartenlogik (Leaflet) ---
+
+        /** Initialisiert die Karte */
+        function initMap() {
+            if (!mapElement) {
+                console.error("Karten-Element nicht gefunden.");
+                return;
+            }
+
+            // Basis-Karte (Weltansicht)
+            map = L.map('map', {
+                worldCopyJump: true // Ermöglicht das Durchblättern der Weltkarte
+            }).setView([20, 0], 2); // Startansicht: Mitte der Welt, Zoomstufe 2
+
+            // OpenStreetMap Tiles (Dark Mode-ähnlich)
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+                subdomains: 'abcd',
+                maxZoom: 18
+            }).addTo(map);
+
+            // MarkerCluster Gruppe
+            markers = L.markerClusterGroup({
+                showCoverageOnHover: false,
+                zoomToBoundsOnClick: true,
+                spiderfyOnMaxZoom: true
+            });
+            map.addLayer(markers);
+
+            // Event-Listener für das Setzen einer Nadel
+            map.on('click', onMapClick);
+
+            // Lade Pins und aktualisiere die Ansicht
+            loadPins();
+            updateMapAndSidebar();
+        }
+
+        /** Erstellt ein benutzerdefiniertes Pin-Icon */
+        function createCustomPin(content = '•', isHighlighted = false) {
+            return L.divIcon({
+                className: `custom-pin ${isHighlighted ? 'highlight-pin' : ''}`,
+                html: content,
+                iconSize: isHighlighted ? [30, 30] : [20, 20],
+                iconAnchor: isHighlighted ? [15, 30] : [10, 20] // Passt den Ankerpunkt an
+            });
+        }
+
+        /** Aktualisiert die Karte mit Pins und die Seitenleiste */
+        function updateMapAndSidebar() {
+            markers.clearLayers(); // Löscht alle bestehenden Marker
+            nicknameListDiv.innerHTML = '';
+            highlightedMarker = null;
+
+            if (userPins.length === 0) {
+                pinCountSpan.textContent = '0';
+                noPinsMessage.classList.remove('hidden');
+                return;
+            }
+            noPinsMessage.classList.add('hidden');
+            pinCountSpan.textContent = userPins.length;
+
+            userPins.forEach(pin => {
+                // Erstelle Marker
+                const marker = L.marker([pin.lat, pin.lng], {
+                    icon: createCustomPin(),
+                    pinData: pin // Speichere die Pin-Daten direkt am Marker
+                }).bindPopup(`<b>${pin.nickname}</b><br>Ort: ${pin.country || 'Unbekannt'}`);
+
+                markers.addLayer(marker);
+
+                // Erstelle Eintrag in der Seitenleiste
+                const listItem = document.createElement('div');
+                listItem.className = 'sidebar-pin p-2 bg-gray-700 rounded-lg hover:bg-purple-800 transition duration-150 flex justify-between items-center';
+                listItem.innerHTML = `<span class="font-medium">${pin.nickname}</span> <span class="text-sm text-gray-400">${pin.country}</span>`;
+                listItem.addEventListener('click', () => highlightUserPin(pin.nickname));
+                nicknameListDiv.appendChild(listItem);
+            });
+        }
+
+        /** Hebt einen spezifischen Benutzer-Pin hervor */
+        function highlightUserPin(nickname) {
+            // 1. Highlight aufheben
+            if (highlightedMarker) {
+                highlightedMarker.setIcon(createCustomPin());
+                highlightedMarker = null;
+            }
+
+            // 2. Pin suchen
+            let targetPin = userPins.find(p => p.nickname === nickname);
+            if (!targetPin) return;
+
+            // 3. Marker in der MarkerClusterGroup finden
+            markers.eachLayer(layer => {
+                if (layer.options.pinData && layer.options.pinData.nickname === nickname) {
+                    highlightedMarker = layer;
+                    return false; // Schleife beenden
+                }
+            });
+
+            if (highlightedMarker) {
+                // 4. Highlight setzen (größer und rot)
+                highlightedMarker.setIcon(createCustomPin('★', true));
+
+                // 5. Zur Position zoomen und Popup öffnen
+                map.flyTo([targetPin.lat, targetPin.lng], 8);
+                highlightedMarker.openPopup();
+
+                // Entferne eventuelle vorherige Gebiets-Highlights
+                clearGeoJsonLayer();
+                searchResultDiv.textContent = `Pin von ${nickname} hervorgehoben.`;
+            }
+        }
+
+        /** Entfernt die GeoJson-Highlight-Ebene */
+        function clearGeoJsonLayer() {
+            if (geoJsonLayer) {
+                map.removeLayer(geoJsonLayer);
+                geoJsonLayer = null;
+            }
+        }
+
+        // --- Pin-Setzen-Flow ---
+
+        /** Startet den Pin-Setzen-Flow */
+        setPinButton.addEventListener('click', () => {
+            showModal(
+                'Nickname eingeben',
+                'Bitte gib deinen einzigartigen Nickname ein, um fortzufahren.',
+                true, // Ist ein Eingabefeld
+                (nickname) => {
+                    if (!nickname) {
+                        showModal('Abgebrochen', 'Nickname-Eingabe wurde abgebrochen.');
+                        return;
+                    }
+                    if (userPins.some(p => p.nickname.toLowerCase() === nickname.toLowerCase())) {
+                        showModal('Fehler', `Der Nickname "${nickname}" ist bereits vergeben. Bitte versuche es mit einem anderen.`);
+                        currentPinningNickname = null;
+                        return;
+                    }
+                    currentPinningNickname = nickname;
+                    showModal('Karte klicken', `Hallo, ${nickname}! Klicke nun auf die Weltkarte, um deinen Wohnort zu markieren.`);
+                }
+            );
+        });
+
+        /** Event-Handler für den Klick auf die Karte */
+        function onMapClick(e) {
+            if (!currentPinningNickname) return; // Nur aktiv, wenn der Pin-Setzen-Flow gestartet wurde
+
+            const { lat, lng } = e.latlng;
+
+            // In einem realen Szenario müssten wir hier einen Reverse Geocoding API-Aufruf machen,
+            // um Land und Kontinent zu bestimmen (z.B. mit Nominatim oder OpenCage).
+            // Da wir nur eine einzelne HTML-Datei verwenden dürfen, verwenden wir eine vereinfachte Bestimmung.
+
+            // Für die Demo fragen wir den Benutzer nach dem Land/Kontinent:
+            showModal(
+                'Standort bestätigen',
+                `Setze Pin bei: Breitengrad ${lat.toFixed(2)}, Längengrad ${lng.toFixed(2)}. Bitte gib Land und Kontinent (durch Komma getrennt) an (z.B. Deutschland, Europa):`,
+                true,
+                (locationString) => {
+                    if (!locationString) {
+                        showModal('Abgebrochen', 'Standortbestätigung wurde abgebrochen. Pin wurde nicht gesetzt.');
+                        currentPinningNickname = null;
+                        return;
+                    }
+
+                    const parts = locationString.split(',').map(s => s.trim());
+                    const country = parts[0] || 'Unbekanntes Land';
+                    const continent = parts[1] || 'Unbekannter Kontinent';
+
+                    addPin(currentPinningNickname, lat, lng, country, continent);
+                    currentPinningNickname = null; // Setzen des Pins ist abgeschlossen
+                }
+            );
+        }
+
+        // --- Such- und Highlight-Logik (Kontinent/Land) ---
+
+        /** Führt die Suche nach Land oder Kontinent aus */
+        searchLocationInput.addEventListener('input', () => {
+            const query = searchLocationInput.value.trim().toLowerCase();
+            clearGeoJsonLayer(); // Entfernt vorheriges Highlight
+
+            if (query.length === 0) {
+                searchResultDiv.textContent = '';
+                return;
+            }
+
+            // Filtere Pins nach Land oder Kontinent
+            const filteredPins = userPins.filter(pin =>
+                pin.country && pin.country.toLowerCase().includes(query) ||
+                pin.continent && pin.continent.toLowerCase().includes(query)
+            );
+
+            const count = filteredPins.length;
+            searchResultDiv.textContent = count > 0
+                ? `${count} Pins in der Region gefunden.`
+                : 'Keine Pins in der Region gefunden.';
+
+            if (count > 0) {
+                // Erstelle eine Bounding Box (Rechteck) für das Highlight
+                let bounds = L.latLngBounds([]);
+                filteredPins.forEach(pin => {
+                    bounds.extend([pin.lat, pin.lng]);
+                });
+
+                if (bounds.isValid()) {
+                    // Füge eine GeoJSON-Ebene mit dem Rechteck als Highlight hinzu
+                    const geoJsonData = {
+                        "type": "Feature",
+                        "geometry": {
+                            "type": "Polygon",
+                            "coordinates": [[
+                                [bounds.getWest(), bounds.getNorth()],
+                                [bounds.getEast(), bounds.getNorth()],
+                                [bounds.getEast(), bounds.getSouth()],
+                                [bounds.getWest(), bounds.getSouth()],
+                                [bounds.getWest(), bounds.getNorth()]
+                            ]]
+                        }
+                    };
+
+                    geoJsonLayer = L.geoJson(geoJsonData, {
+                        style: {
+                            color: "#c084fc", // Lila Rand
+                            weight: 3,
+                            opacity: 0.6,
+                            fillColor: "#9333ea", // Lila Füllung
+                            fillOpacity: 0.2
+                        }
+                    }).addTo(map);
+
+                    // Zoome zum Begrenzungsrahmen
+                    map.fitBounds(bounds, { padding: [50, 50] });
+
+                    // Optional: Zeige Cluster-Markierungen für die Region an (Leaflet MarkerCluster macht dies automatisch beim Zoomen)
+                }
+            }
+        });
+
+        // Initialisiere die Karte, sobald das DOM geladen ist
+        window.onload = initMap;
+    </script>
+
+</body>
+</html>
