@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Zoom at Monza ONE ELO Ranking + Analysis</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #0d1117; color: #e5e7eb; }
+        .table-container { overflow-x: auto; }
+        /* Chart styles */
+        #chartContainer { height: 320px; max-height: 50vh; }
+        #laptimeChart { width: 100%; height: 100%; background: #0b1220; border-radius: 6px; }
+    </style>
+</head>
+<body class="p-4 md:p-8 min-h-screen">
+
+    <div id="app" class="max-w-7xl xl:max-w-[1550px] mx-auto">
+        <header class="text-center mb-6 p-6 bg-gray-800 rounded-xl shadow-2xl">
+            <nav class="flex justify-between items-center max-w-7xl xl:max-w-[1550px] mx-auto">
+                <a href="index.html" class="flex-shrink-0">
+                    <img src="https://raw.githubusercontent.com/Simlearner/Main/main/assets/pictures/image01.jpg" alt="SimLearner Logo" class="h-28 rounded-lg">
+                </a>
+                <a href="index.html" class="px-4 py-2 border border-gray-600 rounded-lg text-gray-300 hover:border-white hover:text-white transition-colors duration-300">
+                    Back to Main page
+                </a>
+            </nav>
+
+            <h1 class="text-3xl sm:text-4xl font-extrabold text-white mb-2">Zoom at Monza ONE ELO Ranking</h1>
+            <p class="text-sm sm:text-base text-gray-400">All drivers sorted by ELO Rating.</p>
+        </header>
+
+        <div id="loading" class="text-center text-blue-400 font-semibold mt-6">Loading ELO and Driver data...</div>
+        <div id="error-message" class="hidden p-4 bg-red-800 text-white rounded-lg shadow-md text-center">
+            Error loading the data. Ensure, the correct <strong>Spreadsheet ID</strong> is used and the document is public on the web.
+        </div>
+
+        <div id="analysis-ui" class="hidden mt-8 max-w-6xl mx-auto p-6 bg-white/5 rounded-xl border border-gray-700">
+            <h2 class="text-2xl font-bold text-white mb-3">ELO-Distribution Analysis & Certification</h2>
+            <p id="certification-hint" class="text-sm text-yellow-400 mb-4 font-semibold">
+                </p>
+
+            <div id="statusMessage" class="text-red-400 font-medium mt-4 hidden"></div>
+
+            <div id="driverSearchArea" class="hidden my-6 p-4 bg-white/3 rounded-lg border border-gray-700">
+                <h3 class="text-lg font-medium text-white mb-2">Driver-Comparison</h3>
+                <div class="relative">
+                    <input type="text" id="driverSearchInput" oninput="showSuggestions()" placeholder="Search Drivername..."
+                            class="w-full p-3 rounded-lg bg-gray-900 text-white" />
+                    <ul id="driverSuggestions" class="absolute z-30 w-full bg-gray-800 border border-gray-700 rounded shadow max-h-40 overflow-y-auto hidden mt-1 text-sm"></ul>
+                </div>
+                <div id="selectedDriversContainer" class="mt-4 flex flex-wrap gap-2"></div>
+            </div>
+
+            <div id="statsTable" class="hidden grid grid-cols-3 gap-4 text-center mb-4">
+                <div class="p-4 bg-gray-800 rounded-lg shadow-sm">
+                    <p class="text-xs text-gray-400">Certified drivers (ELO $\ge$ LIM)</p>
+                    <p id="countOutput" class="text-2xl font-bold text-white">0</p>
+                </div>
+                <div class="p-4 bg-gray-800 rounded-lg shadow-sm border border-red-700/30">
+                    <p class="text-xs text-gray-400">Removed outliers (ELO $<$ LIM)</p>
+                    <p id="outliersRemovedCountOutput" class="text-2xl font-bold text-red-400">0</p>
+                </div>
+                <div class="p-4 bg-gray-800 rounded-lg shadow-sm">
+                    <p class="text-xs text-gray-400">Median ELO (50. Perzentile)</p>
+                    <p id="medianOutput" class="text-2xl font-bold text-white">-</p>
+                </div>
+            </div>
+
+            <div id="chartArea" class="hidden">
+                <h3 class="text-lg font-medium text-white mb-2">ELO Distribution Curve</h3>
+                <div id="chartContainer" class="relative w-full border border-gray-700 rounded-lg p-1 bg-gray-900">
+                    <canvas id="laptimeChart"></canvas>
+                </div>
+                <div id="chartLegend" class="mt-2 text-sm text-gray-300">
+                    <span class="inline-block w-4 h-2 bg-indigo-600 mr-1 rounded"></span> Total ELO distribution |
+                    <span id="legendDrivers" class="text-gray-200"></span>
+                </div>
+
+                <div id="quantileResults" class="mt-4 bg-gray-900/60 p-4 rounded-lg border border-gray-700">
+                    <h4 class="text-sm text-gray-200 mb-2">ELO Quantiles of certified distribution</h4>
+                    <div class="grid grid-cols-3 gap-2 text-sm">
+                        <div class="p-2 bg-gray-800 rounded-md">
+                            <p class="text-xs text-gray-400">25. Perzentile (Q1)</p>
+                            <p id="q25Output" class="text-lg font-bold text-green-400">-</p>
+                        </div>
+                        <div class="p-2 bg-gray-800 rounded-md border border-indigo-600/30">
+                            <p class="text-xs text-gray-400">50. Perzentile (Median)</p>
+                            <p id="q50Output" class="text-lg font-bold text-indigo-400">-</p>
+                        </div>
+                        <div class="p-2 bg-gray-800 rounded-md">
+                            <p class="text-xs text-gray-400">75. Perzentile (Q3)</p>
+                            <p id="q75Output" class="text-lg font-bold text-green-400">-</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="data-container" class="hidden">
+            <div class="table-container bg-gray-900 rounded-xl shadow-lg border border-gray-700 p-4 mt-8">
+                <table class="min-w-full divide-y divide-gray-700">
+                    <thead class="bg-gray-800">
+                        <tr>
+                            <th class="px-2 py-3 text-center text-lg font-bold text-gray-300 uppercase tracking-wider">Rank</th>
+                            <th class="px-2 py-3 text-center text-lg font-bold text-gray-300 uppercase tracking-wider">ELO</th>
+                            <th class="px-2 py-3 text-center text-lg font-bold text-gray-300 uppercase tracking-wider">Races</th>
+                            <th class="px-2 py-3 text-center text-lg font-bold text-gray-300 uppercase tracking-wider">Best Lap</th>
+                            <th class="px-2 py-3 text-center text-lg font-bold text-gray-300 uppercase tracking-wider">Name(s)</th>
+                            <th class="px-2 py-3 text-center text-lg font-bold text-gray-300 uppercase tracking-wider">Steam Profile</th>
+                            <th class="px-2 py-3 text-center text-lg font-bold text-gray-300 uppercase tracking-wider">Date (UTC)</th>
+                            <th class="px-2 py-3 text-center text-lg font-bold text-gray-300 uppercase tracking-wider">Car</th>
+                        </tr>
+                    </thead>
+                    <tbody id="driver-list" class="bg-gray-900 divide-y divide-gray-700 text-white"></tbody>
+                </table>
+            </div>
+
+            <footer class="mt-4 text-center text-sm text-gray-500">
+                <p>Zuletzt geladen: <span id="last-updated">Unbekannt</span></p>
+            </footer>
+        </div>
+    </div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+<script>
+    // *** WICHTIG: AKTUALISIEREN SIE DIESE GOOGLE SPREADSHEET ID ***
+    const SPREADSHEET_ID = '1bmGO2Q3pxUbUZfKkxpfVl1f-_-RcgCO2M0k7b0ygrVo'; // <--- HIER EINFÜGEN!
+    
+    // Die Spalten B, I und J werden benötigt:
+    // A: steam_id, B: best_lap_ms, C: best_lap_display, D: names_used, E: best_lap_date_utc, 
+    // F: session_type, G: Car, H: Class, I: Races, J: ELO
+    const QUERY_COLUMNS = 'A, B, C, D, E, G, I, J'; // H: Class (entfernt), F: session_type (entfernt)
+    const SHEETS_API_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json&tq=select ${QUERY_COLUMNS}&t=${new Date().getTime()}`;
+
+    // DOM-Elemente
+    const driverList = document.getElementById('driver-list');
+    const loadingElement = document.getElementById('loading');
+    const dataContainer = document.getElementById('data-container');
+    const errorMessage = document.getElementById('error-message');
+    const lastUpdatedElement = document.getElementById('last-updated');
+    const certificationHint = document.getElementById('certification-hint');
+
+    // Analyse-Globals
+    let allDriverData = []; // [{time: ms, name: 'NameString', steam_id: '...', elo: 2000, ...}, ...]
+    let certifiedDrivers = []; // gefilterte Daten (zertifiziert)
+    let uniqueDrivers = []; 
+    let selectedDrivers = []; 
+    const driverColors = ['#f59e0b', '#10b981', '#ef4444', '#6366f1', '#a855f7', '#ec4899'];
+    let driverColorIndex = 0;
+    let currentChart = null; // Für Chart.js Instanz
+
+    // Canvas
+    const chartCanvas = document.getElementById('laptimeChart');
+    const ctx = chartCanvas ? chartCanvas.getContext('2d') : null;
+
+    // ---------- Hilfsfunktionen ----------
+    function formatLapTime(ms) {
+        if (!ms || ms === 2147483647) return 'N/A';
+        const totalSeconds = Math.floor(ms / 1000);
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        const milliseconds = ms % 1000;
+        return `${minutes}:${String(seconds).padStart(2,'0')}.${String(milliseconds).padStart(3,'0')}`;
+    }
+    
+    // Formatierung für ELO auf der X-Achse
+    function formatElo(elo) {
+        return Math.round(elo).toString();
+    }
+
+    function formatDateTime(utcDateString) {
+        if (!utcDateString || utcDateString === '1970-01-01T00:00:00Z' || utcDateString === 'Unbekannt') return 'N/A';
+        try {
+            const date = new Date(utcDateString.replace('Z',''));
+            if (isNaN(date)) return utcDateString;
+            // Nur Datum
+            const options = { year:'numeric', month:'2-digit', day:'2-digit' }; 
+            return date.toLocaleDateString('de-DE', options);
+        } catch (e) { return 'N/A'; }
+    }
+
+    function quantile(sortedData, q) {
+        if (sortedData.length === 0) return 0;
+        const pos = (sortedData.length - 1) * q;
+        const base = Math.floor(pos);
+        const rest = pos - base;
+        if (base < 0) return sortedData[0];
+        if (base >= sortedData.length - 1) return sortedData[sortedData.length - 1];
+        return sortedData[base] + rest * (sortedData[base + 1] - sortedData[base]);
+    }
+
+    // ---------- Daten-Parsing aus Google Sheets ----------
+    function parseGoogleSheetData(gvizData) {
+        const dataTable = gvizData.table;
+        if (!dataTable || !dataTable.rows || dataTable.cols.length === 0) return [];
+
+        const data = dataTable.rows.map(row => {
+            const cells = row.c;
+            
+            // Die Spalten-Indizes basieren auf der Abfrage: A, B, C, D, E, G, I, J (8 Spalten)
+            // Index: 0 1 2 3 4 5 6 7
+            const steamIdRaw = String(cells[0]?.v || '');
+            const steamId = steamIdRaw.startsWith("'") ? steamIdRaw.substring(1) : steamIdRaw;
+            const bestLapMs = cells[1]?.v || 2147483647;
+            const bestLapDisplay = cells[2]?.v || formatLapTime(bestLapMs);
+            const namesUsedRaw = cells[3]?.v || '';
+            const bestLapDateUtc = cells[4]?.v || '1970-01-01T00:00:00Z'; // Spalte E
+            const car = cells[5]?.v || 'Unbekannt'; // Spalte G
+            const races = Number(cells[6]?.v) || 0; // Spalte I
+            const elo = Number(cells[7]?.v) || 2000; // Spalte J
+
+            return {
+                steam_id: String(steamId),
+                best_lap_ms: bestLapMs,
+                best_lap_display: bestLapDisplay,
+                names_used: namesUsedRaw.split(',').map(n => n.trim()).filter(n => n.length > 0),
+                names_raw: namesUsedRaw,
+                best_lap_date_utc: bestLapDateUtc,
+                car: car,
+                races: races,
+                elo: elo
+            };
+        }).filter(driver => driver.steam_id);
+
+        // Sortiere primär nach ELO (absteigend), sekundär nach Races (absteigend)
+        data.sort((a,b) => {
+            if (b.elo !== a.elo) {
+                return b.elo - a.elo; // ELO absteigend
+            }
+            return b.races - a.races; // Races absteigend
+        });
+        return data;
+    }
+
+    // ---------- Laden & Rendern ----------
+    async function loadAndRender() {
+        loadingElement.classList.remove('hidden');
+        dataContainer.classList.add('hidden');
+        errorMessage.classList.add('hidden');
+        driverList.innerHTML = '';
+
+        try {
+            const response = await fetch(SHEETS_API_URL);
+            if (!response.ok) throw new Error(`HTTP-Fehler! Status: ${response.status}`);
+            
+            const text = await response.text();
+            const jsonStart = text.indexOf('{');
+            const jsonEnd = text.lastIndexOf('}');
+            const jsonString = text.substring(jsonStart, jsonEnd + 1);
+            const gvizResponse = JSON.parse(jsonString);
+
+            if (gvizResponse.status !== 'ok') {
+                throw new Error(`API Status Fehler: ${gvizResponse.errors ? gvizResponse.errors.map(e => e.message).join('; ') : 'Unbekannter Fehler'}`);
+            }
+
+            const allData = parseGoogleSheetData(gvizResponse);
+
+            // --- NEUE LOGIK: Laptime Outlier Removal (IQR) ---
+            
+            // 1. Alle Fahrer mit validen Rundenzeiten herausfiltern
+            const allValidLaps = allData.filter(d => 
+                d.best_lap_ms < 2147483647 && d.best_lap_ms > 0
+            );
+            
+            const validMsTimes = allValidLaps.map(d => d.best_lap_ms).sort((a,b)=>a-b);
+            const initialValidCount = validMsTimes.length;
+            
+            let laptimeLIM = 0; // Standardwert
+            const OUTLIER_FACTOR = 2.5; 
+            
+            if (validMsTimes.length >= 4) {
+                // 2. Langsame Ausreißer via IQR entfernen (obere Grenze)
+                const q1_temp = quantile(validMsTimes, 0.25);
+                const q3_temp = quantile(validMsTimes, 0.75);
+                const iqr = q3_temp - q1_temp;
+                
+                // Die Obergrenze (Upper Fence) im Boxplot-Prinzip
+                laptimeLIM = q3_temp + OUTLIER_FACTOR * iqr; 
+            
+                // Filtern der tatsächlichen Driver-Objekte
+                certifiedDrivers = allValidLaps.filter(d => d.best_lap_ms <= laptimeLIM);
+                
+                // 3. Statusmeldungen anpassen
+                const laptimeLIM_display = formatLapTime(Math.round(laptimeLIM));
+                
+                // Die Anzahl der entfernten Ausreißer für die Anzeige berechnen
+                outliersRemovedCount = initialValidCount - certifiedDrivers.length;
+                
+                // 4. Den Hinweis anpassen
+                certificationHint.innerHTML = `<strong>Certified Drivers:</strong> Your laptime must be below ${laptimeLIM_display} to be certified.`;
+            
+            } else {
+                // Fallback, wenn zu wenige Daten für IQR
+                certifiedDrivers = allValidLaps;
+                outliersRemovedCount = 0;
+                certificationHint.innerHTML = `<strong>Certified Drivers:</strong> All ${initialValidCount} drivers with valid laptime are being displayd. (Not enough data for IQR-Analysis)`;
+            }
+            
+            // Globalen ELO-Grenzwert für die Chart-Funktion (analyzeLaptimesFromSheet) auf 0 setzen, da er jetzt ignoriert wird.
+            const LIM = 0;
+
+
+            // Render Tabelle (nur Certified Drivers)
+            certifiedDrivers.forEach((driver, index) => {
+                const row = document.createElement('tr');
+                const namesString = driver.names_used.length > 0 ? driver.names_used.join('<br>') : 'Unbekannt';
+                const rowClass = index % 2 === 0 ? 'bg-gray-800 hover:bg-gray-700' : 'bg-gray-900 hover:bg-gray-800';
+                row.className = rowClass + ' transition duration-150 ease-in-out';
+
+                let eloClass = 'text-white font-extrabold';
+                if (index === 0) eloClass = 'text-yellow-400 font-extrabold text-lg';
+                else if (index <= 2) eloClass = 'text-green-500 font-extrabold text-lg';
+                else eloClass = 'text-green-600 font-extrabold';
+
+                row.innerHTML = `
+                    <td class="px-2 py-4 whitespace-nowrap text-center text-sm text-gray-400">${index + 1}</td>
+                    <td class="px-2 py-4 whitespace-nowrap text-center text-sm ${eloClass}">${driver.elo}</td>
+                    <td class="px-2 py-4 whitespace-nowrap text-center text-sm text-gray-300 font-semibold">${driver.races}</td>
+                    <td class="px-2 py-4 whitespace-nowrap text-center text-sm text-gray-400">${driver.best_lap_display}</td>
+                    <td class="px-2 py-4 text-sm text-center text-gray-300 max-w-xs truncate">${namesString}</td>
+                    <td class="px-2 py-4 whitespace-nowrap text-center text-sm sm:table-cell">
+                        <a href="https://steamcommunity.com/profiles/${driver.steam_id}" target="_blank" 
+                            class="text-blue-500 hover:text-blue-400 font-medium transition duration-150 ease-in-out"
+                            title="SteamID: ${driver.steam_id}">
+                            View Profile
+                        </a>
+                    </td>
+                    <td class="px-2 py-4 whitespace-nowrap text-center text-sm text-gray-400">${formatDateTime(driver.best_lap_date_utc)}</td>
+                    <td class="px-2 py-4 whitespace-nowrap text-center text-sm text-gray-300">${driver.car}</td>
+                `;
+                driverList.appendChild(row);
+            });
+
+            lastUpdatedElement.textContent = formatDateTime(new Date().toISOString());
+            loadingElement.classList.add('hidden');
+            dataContainer.classList.remove('hidden');
+
+            // Bereite Analyse-Daten vor
+            prepareAnalysisData(allData);
+
+            // Analysiere und zeichne Chart
+            analyzeLaptimesFromSheet(LIM);
+
+        } catch (error) {
+            console.error("Daten-Rendering-Fehler:", error);
+            loadingElement.classList.add('hidden');
+            errorMessage.classList.remove('hidden');
+        }
+    }
+
+    // ---------- Vorbereitung der Analyse-Daten (automatisch) ----------
+    function prepareAnalysisData(allData) {
+        allDriverData = [];
+        const uniqueNamesSet = new Set();
+
+        allData.forEach(row => {
+            const elo = Number(row.elo);
+            const ms = Number(row.best_lap_ms);
+
+            // Nur Fahrer mit gültiger ELO und Zeit für die Analyse
+            if (!elo || isNaN(elo) || elo === 0 || !ms || ms === 2147483647 || ms <= 0) return; 
+
+            const nameString = row.names_raw || row.names_used.join(',');
+            allDriverData.push({ 
+                elo: elo, 
+                time: ms, 
+                name: nameString, 
+                steam_id: row.steam_id 
+            });
+
+            nameString.split(',').map(n => n.trim()).filter(n => n.length>0).forEach(n => uniqueNamesSet.add(n));
+        });
+
+        uniqueDrivers = Array.from(uniqueNamesSet).sort();
+
+        // UI freischalten
+        document.getElementById('analysis-ui').classList.remove('hidden');
+
+        // Reset chart/status
+        document.getElementById('statusMessage').classList.add('hidden');
+        document.getElementById('driverSearchArea').classList.add('hidden');
+        selectedDrivers = [];
+        driverColorIndex = 0;
+        updateSelectedDriversUI();
+    }
+
+    // ---------- Analyse (verwendet ELO) ----------
+    function analyzeLaptimesFromSheet(LIM) {
+        const statusMessage = document.getElementById('statusMessage');
+        const statsTable = document.getElementById('statsTable');
+        const chartArea = document.getElementById('chartArea');
+        const driverSearchArea = document.getElementById('driverSearchArea');
+        
+        statusMessage.textContent = '';
+        statusMessage.classList.add('hidden');
+        statsTable.classList.add('hidden');
+        chartArea.classList.add('hidden');
+        driverSearchArea.classList.add('hidden');
+
+        // 1. Certified ELO-Daten
+        const certifiedElos = certifiedDrivers.map(d => d.elo).sort((a,b) => a-b);
+        const allElos = allDriverData.map(d => d.elo).sort((a,b) => a-b);
+        
+        if (!certifiedElos || certifiedElos.length < 3) {
+            statusMessage.textContent = 'Nicht genügend zertifizierte Fahrer für die ELO-Analyse (mindestens 3 erforderlich).';
+            statusMessage.classList.remove('hidden');
+            return;
+        }
+
+        // 2. ELO Quantile (basierend auf certified drivers)
+        const count = certifiedElos.length;
+        const outliersRemovedCount = allElos.length - certifiedElos.length;
+
+        const q25 = quantile(certifiedElos, 0.25);
+        const q50 = quantile(certifiedElos, 0.50);
+        const q75 = quantile(certifiedElos, 0.75);
+
+        document.getElementById('countOutput').textContent = count;
+        document.getElementById('medianOutput').textContent = formatElo(q50);
+        document.getElementById('outliersRemovedCountOutput').textContent = outliersRemovedCount;
+        document.getElementById('q25Output').textContent = formatElo(q25);
+        document.getElementById('q50Output').textContent = formatElo(q50);
+        document.getElementById('q75Output').textContent = formatElo(q75);
+
+        statsTable.classList.remove('hidden');
+        chartArea.classList.remove('hidden');
+        driverSearchArea.classList.remove('hidden');
+
+        // Chart zeichnen (X-Achse = ELO)
+        drawChart(certifiedElos, q25, q50, q75, LIM);
+    }
+
+    // ---------- Fahrer-Suche und Auswahl (unverändert) ----------
+    function showSuggestions() {
+        const input = document.getElementById('driverSearchInput').value.toLowerCase().trim();
+        const suggestionsList = document.getElementById('driverSuggestions');
+        suggestionsList.innerHTML = '';
+
+        if (input.length < 2) {
+            suggestionsList.classList.add('hidden'); return;
+        }
+        const filtered = uniqueDrivers.filter(d => d.toLowerCase().includes(input)).slice(0,10);
+        if (filtered.length === 0) { suggestionsList.classList.add('hidden'); return; }
+
+        filtered.forEach(name => {
+            const li = document.createElement('li');
+            li.className = 'p-2 cursor-pointer hover:bg-gray-700';
+            li.textContent = name;
+            li.onclick = () => addSelectedDriver(name);
+            suggestionsList.appendChild(li);
+        });
+        suggestionsList.classList.remove('hidden');
+    }
+
+    function addSelectedDriver(driverName) {
+        if (selectedDrivers.some(d => d.name === driverName)) return;
+        const color = driverColors[driverColorIndex % driverColors.length];
+        driverColorIndex++;
+        selectedDrivers.push({ name: driverName, color });
+        document.getElementById('driverSearchInput').value = '';
+        document.getElementById('driverSuggestions').classList.add('hidden');
+        updateSelectedDriversUI();
+        
+        // Chart neu zeichnen
+        const certifiedElos = certifiedDrivers.map(d => d.elo).sort((a,b) => a-b);
+        const q25 = quantile(certifiedElos, 0.25);
+        const q50 = quantile(certifiedElos, 0.50);
+        const q75 = quantile(certifiedElos, 0.75);
+        drawChart(certifiedElos, q25, q50, q75, LIM);
+    }
+
+    function removeSelectedDriver(driverName) {
+        selectedDrivers = selectedDrivers.filter(d => d.name !== driverName);
+        updateSelectedDriversUI();
+        const certifiedElos = certifiedDrivers.map(d => d.elo).sort((a,b) => a-b);
+        const q25 = quantile(certifiedElos, 0.25);
+        const q50 = quantile(certifiedElos, 0.50);
+        const q75 = quantile(certifiedElos, 0.75);
+        drawChart(certifiedElos, q25, q50, q75, LIM);
+    }
+
+    function updateSelectedDriversUI() {
+        const container = document.getElementById('selectedDriversContainer');
+        const legend = document.getElementById('legendDrivers');
+        container.innerHTML = ''; legend.innerHTML = '';
+        
+        selectedDrivers.forEach(driver => {
+            const chip = document.createElement('span');
+            chip.className = 'inline-flex items-center text-xs font-semibold px-3 py-1 rounded-full text-white cursor-pointer';
+            chip.style.backgroundColor = driver.color;
+            chip.textContent = driver.name;
+            chip.onclick = () => removeSelectedDriver(driver.name);
+
+            const removeIcon = document.createElement('span');
+            removeIcon.className = 'ml-1.5 font-bold';
+            removeIcon.innerHTML = '&times;';
+            chip.appendChild(removeIcon);
+            container.appendChild(chip);
+
+            // ELO unter dem Fahrernamen anzeigen
+            const driverEntries = allDriverData.filter(d =>
+                d.name.split(',').map(n => n.trim()).some(n => n === driver.name)
+            );
+            const bestElo = driverEntries.length > 0 ? Math.max(...driverEntries.map(d => d.elo)) : null;
+            const formattedElo = bestElo ? formatElo(bestElo) : '-';
+            
+            const eloElement = document.createElement('div');
+            eloElement.className = 'text-gray-300 text-xs mt-1';
+            eloElement.textContent = `ELO: ${formattedElo}`;
+            container.appendChild(eloElement);
+
+            const legendItem = document.createElement('span');
+            legendItem.className = 'mr-2 text-sm text-gray-300';
+            legendItem.innerHTML = `<span class="inline-block w-4 h-2 mr-1 rounded" style="background-color:${driver.color};"></span> ${driver.name}`;
+            legend.appendChild(legendItem);
+        });
+    }
+
+    // ---------- Charting (Chart.js für ELO) ----------
+    function getKDEData(data) {
+        // Diese Funktion ist eine einfache Glättung des Datenpunkte-Histogramms, um eine Kurve zu erstellen.
+        const minVal = Math.min(...data);
+        const maxVal = Math.max(...data);
+        const range = maxVal - minVal;
+        const numBins = Math.min(50, Math.ceil(Math.sqrt(data.length) * 2)); 
+        const binSize = range / numBins;
+        
+        if (binSize <= 0) return [];
+
+        const densityData = [];
+        for (let i = 0; i <= numBins; i++) {
+            const x = minVal + i * binSize;
+            let count = 0;
+            data.forEach(val => {
+                if (val >= x && val < x + binSize) {
+                    count++;
+                }
+            });
+            densityData.push({ x: Math.round(x), y: count / binSize });
+        }
+        
+        // Glätte die Dichte (einfache Moving Average)
+        const smoothedData = [];
+        const windowSize = 3; 
+        for (let i = 0; i < densityData.length; i++) {
+            let sum = 0;
+            let count = 0;
+            for (let j = -Math.floor(windowSize/2); j <= Math.floor(windowSize/2); j++) {
+                const index = i + j;
+                if (index >= 0 && index < densityData.length) {
+                    sum += densityData[index].y;
+                    count++;
+                }
+            }
+            smoothedData.push({ x: densityData[i].x, y: sum / count });
+        }
+
+        // Fügen Sie Min/Max-Punkte an, um die Kurve zu schließen
+        if(smoothedData.length > 0) {
+            smoothedData.unshift({ x: Math.round(minVal - binSize), y: 0 });
+            smoothedData.push({ x: Math.round(maxVal + binSize), y: 0 });
+        }
+        
+        return smoothedData.map(p => ({ x: p.x, y: p.y * binSize })); // Dichte * BinSize zur Skalierung
+    }
+
+    function drawChart(data, q25, q50, q75, LIM) {
+        if (!ctx || !data || data.length === 0) return;
+        
+        if (currentChart) {
+            currentChart.destroy();
+        }
+        
+        const mainDistribution = getKDEData(data);
+
+        // Chart.js Datasets
+        const datasets = [];
+
+        // 1. Hauptverteilung (Fläche und Linie)
+        datasets.push({
+            label: 'Total ELO Distribution (Certified)',
+            data: mainDistribution,
+            backgroundColor: 'rgba(99, 102, 241, 0.4)', // indigo-500/40
+            borderColor: 'rgb(99, 102, 241)', // indigo-500
+            borderWidth: 2,
+            pointRadius: 0,
+            fill: 'origin',
+            tension: 0.4,
+            parsing: { xAxisKey: 'x', yAxisKey: 'y' }
+        });
+
+        // 2. Linien für ausgewählte Fahrer
+        selectedDrivers.forEach(driver => {
+            const driverElos = allDriverData
+                .filter(d => d.name.split(',').map(n => n.trim()).some(n => n === driver.name))
+                .map(d => d.elo)
+                .sort((a,b)=>a-b);
+            
+            if (driverElos.length > 0) {
+                // Hier zeigen wir nur die beste ELO als vertikale Linie (punktförmige Verteilung)
+                const bestElo = Math.max(...driverElos);
+                datasets.push({
+                    label: driver.name,
+                    data: [{ x: bestElo, y: 0 }, { x: bestElo, y: 1 }], // Vertikale Linie
+                    borderColor: driver.color,
+                    borderWidth: 3,
+                    pointRadius: 4,
+                    pointBackgroundColor: driver.color,
+                    fill: false,
+                    tension: 0,
+                    showLine: true,
+                    type: 'line',
+                    parsing: { xAxisKey: 'x', yAxisKey: 'y' }
+                });
+            }
+        });
+
+        // Bestimme Y-Achsen Skalierung
+        const maxDensity = Math.max(...mainDistribution.map(p => p.y), 1);
+        
+        // Erstelle Chart-Instanz
+        currentChart = new Chart(ctx, {
+            type: 'line',
+            data: { datasets: datasets },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        type: 'linear',
+                        title: { display: true, text: 'ELO Rating', color: '#9ca3af' },
+                        grid: { color: '#374151' },
+                        ticks: { color: '#9ca3af' },
+                        min: Math.min(...data) - 50,
+                        max: Math.max(...data) + 50,
+                        border: { color: '#374151' }
+                    },
+                    y: {
+                        display: false, // Keine Y-Achsen-Werte anzeigen
+                        min: 0,
+                        max: maxDensity * 1.2
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            title: (context) => context[0].dataset.label,
+                            label: (context) => {
+                                const dataset = context.dataset;
+                                const value = context.parsed.x;
+                                if (dataset.label === 'Total ELO Distribution (Certified)') {
+                                    return `ELO: ${formatElo(value)}`;
+                                } else {
+                                    return `Best ELO: ${formatElo(value)}`;
+                                }
+                            }
+                        }
+                    },
+                    annotation: {
+                        annotations: {
+                            // LIM Linie (Q75 oder Q25)
+                            limLine: {
+                                type: 'line',
+                                mode: 'vertical',
+                                scaleID: 'x',
+                                value: LIM,
+                                borderColor: 'rgb(245, 158, 11)', // amber-500
+                                borderWidth: 1,
+                                borderDash: [6, 6],
+                                label: {
+                                    content: `Certification LIM: ${LIM}`,
+                                    enabled: true,
+                                    position: 'start',
+                                    backgroundColor: 'rgba(245, 158, 11, 0.7)',
+                                    color: 'black',
+                                    font: { size: 12, weight: 'bold' }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Beim Laden der Seite starten
+    window.addEventListener('load', loadAndRender);
+</script>
+</body>
+</html>
