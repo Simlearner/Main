@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Thank You! - SLR Server Fuel Tank</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #0d1117; color: #e5e7eb; }
+        
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 20px rgba(234, 179, 8, 0.2); }
+            50% { box-shadow: 0 0 40px rgba(234, 179, 8, 0.5); }
+        }
+        .fuel-card {
+            animation: pulse-glow 3s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8 min-h-screen flex flex-col justify-between">
+
+    <div id="app" class="max-w-4xl mx-auto w-full">
+        <!-- HEADER (Matches Main Website) -->
+        <header class="text-center mb-8 p-6 bg-gray-800 rounded-xl shadow-2xl">
+            <nav class="flex justify-between items-center max-w-7xl mx-auto">
+                <a href="index.html" class="flex-shrink-0">
+                    <img src="https://raw.githubusercontent.com/Simlearner/Main/main/assets/pictures/image01.jpg" alt="SimLearner Logo" class="h-28 rounded-lg">
+                </a>
+                <a href="index.html" class="px-4 py-2 border border-gray-600 rounded-lg text-gray-300 hover:border-white hover:text-white transition-colors duration-300">
+                    Back to Main page
+                </a>
+            </nav>
+
+            <h1 class="text-3xl sm:text-4xl font-extrabold text-white mt-4 mb-2">SimLearnerRacing (SLR)</h1>
+            <p class="text-sm sm:text-base text-yellow-400 font-semibold">Box, Box! Fuel Tank Refilled Successfully! ⛽🏆</p>
+        </header>
+
+        <!-- THANK YOU HERO CARD -->
+        <div class="fuel-card bg-gradient-to-br from-indigo-950 via-gray-900 to-gray-800 border-2 border-yellow-500/50 rounded-2xl p-8 md:p-12 text-center shadow-2xl relative overflow-hidden mb-8">
+            <div class="absolute -right-10 -top-10 text-9xl opacity-10 select-none">⛽</div>
+            <div class="absolute -left-10 -bottom-10 text-9xl opacity-10 select-none">🏎️</div>
+
+            <div class="inline-flex items-center justify-center p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-full mb-6">
+                <span class="text-4xl">🎉🏁🙌</span>
+            </div>
+
+            <h2 class="text-3xl sm:text-4xl font-black text-white mb-4 tracking-wide">
+                You're an Absolute Legend!
+            </h2>
+            
+            <p class="text-base sm:text-lg text-gray-300 max-w-2xl mx-auto leading-relaxed mb-6">
+                Thank you so much for dropping a tip into the SLR fuel tank! Because of awesome drivers like you, our servers stay online 24/7, our telemetry stays lightning fast, and our digital engines keep screaming down the Mulsanne straight.
+            </p>
+
+            <div class="bg-black/40 border border-gray-700/60 rounded-xl p-4 max-w-lg mx-auto mb-8 text-sm text-gray-300">
+                <p class="italic">"May your tyres always be at optimal pressure, your frame rates be locked at 240Hz, and your dive-bombs always clean."</p>
+                <p class="text-yellow-400 font-bold mt-2">— The SLR Team 🏎️💨</p>
+            </div>
+
+            <div class="flex flex-wrap justify-center gap-4">
+                <a href="index.html" class="px-8 py-3.5 bg-yellow-500 hover:bg-yellow-400 text-gray-900 font-black rounded-xl shadow-lg transition-transform duration-200 hover:scale-105 flex items-center gap-2">
+                    <span>⬅️</span> Back to Leaderboards & Laptimes
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="mt-8 text-center text-sm text-gray-500">
+        <p>&copy; 2026 SimLearnerRacing (SLR). All rights reserved. Keep pushing those limits!</p>
+    </footer>
+
+</body>
+</html>
