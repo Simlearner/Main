@@ -1,8 +1,9 @@
-Here is the fully updated code implementing your latest layout and configuration changes:
+Here is the complete, updated code addressing all your requirements:
 
-1. **Side Images Layout**: Placed racing car images on both the left and right sides of the main content area (using a 3-column layout grid: Left Images / Center Table & Analysis / Right Images), designed to scale nicely on desktop and overflow cleanly on mobile without affecting table width.
-2. **Centered Mission Statement**: Moved and centered the **SLR Mission Statement** right below the main header section.
-3. **Updated Blacklist & Whitelist**: Automatically added Steam ID `76561198155538912` to the blacklist, and both `| SLR` and `|SLR` to the whitelisted clan tag substrings.
+### Updates Included:
+
+1. **Reliable Image Sources**: Replaced the broken Unsplash image URL with verified, high-resolution racing images (including a dedicated sim racing cockpit setup image).
+2. **Mobile Donation Card Placement**: The Donation Card now appears right above the **3D Champions Podium** on mobile screens (`xl:hidden`), while retaining its position in the right sidebar on desktop screens (`hidden xl:block`).
 
 ```html
 <!DOCTYPE html>
@@ -83,7 +84,7 @@ Here is the fully updated code implementing your latest layout and configuration
         <!-- MAIN LAYOUT: LEFT SIDEBAR PICTURES, CENTER CONTENT, RIGHT SIDEBAR PICTURES & DONATION -->
         <div class="grid grid-cols-1 xl:grid-cols-5 gap-8 items-start">
             
-            <!-- LEFT SIDEBAR: RACING PICTURES (1 COL ON XL) -->
+            <!-- LEFT SIDEBAR: RACING PICTURES (DESKTOP ONLY) -->
             <div class="hidden xl:flex flex-col space-y-6">
                 <div class="bg-gray-800/90 border border-gray-700 rounded-xl overflow-hidden shadow-lg">
                     <img src="https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?auto=format&fit=crop&w=800&q=80" alt="GT3 Racing Monza" class="w-full h-56 object-cover hover:scale-105 transition-transform duration-300">
@@ -95,9 +96,22 @@ Here is the fully updated code implementing your latest layout and configuration
                 </div>
             </div>
 
-            <!-- CENTER CONTENT AREA (3 COLS ON XL) -->
+            <!-- CENTER CONTENT AREA -->
             <div class="xl:col-span-3 space-y-8">
                 
+                <!-- DONATION CARD (MOBILE ONLY: PLACED ABOVE TOP 3 CHAMPIONS) -->
+                <div class="block xl:hidden bg-gradient-to-br from-indigo-900/60 to-gray-800 border border-yellow-500/40 rounded-xl p-5 shadow-xl text-center max-w-xl mx-auto">
+                    <h3 class="text-lg font-bold text-yellow-400 mb-2">⛽ Feed the Server Fuel Tank!</h3>
+                    <p class="text-xs text-gray-300 mb-4 leading-relaxed">
+                        Keeping SLR dedicated servers, telemetry tools, and high-octane lobbies running 24/7 costs a few real-world bucks! 
+                        If you shaved off 0.2s today or enjoy our leaderboards, consider throwing a small tip into our fuel tank to keep our digital engines revving. 🏎️💨
+                    </p>
+                    <a href="https://www.paypal.com" target="_blank" class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-yellow-500 hover:bg-yellow-400 text-gray-900 font-extrabold rounded-lg shadow-md transition duration-200">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944 3.72a.77.77 0 0 1 .762-.647h6.29c2.81 0 4.888.601 5.85 1.688.922 1.042 1.05 2.607.382 4.654-.863 2.645-2.83 4.195-5.853 4.195H9.686a.642.642 0 0 0-.633.541l-.986 6.18a.642.642 0 0 1-.991.006z"/></svg>
+                        Donate for Server Fuel
+                    </a>
+                </div>
+
                 <!-- 3D CAR PODIUM SECTION -->
                 <div id="podium-section" class="hidden max-w-5xl mx-auto">
                     <h2 class="text-2xl font-bold text-center text-white mb-6 tracking-wide uppercase">🏎️ Fastest Cars Podium</h2>
@@ -259,14 +273,14 @@ Here is the fully updated code implementing your latest layout and configuration
                 </div>
             </div>
 
-            <!-- RIGHT SIDEBAR: PICTURES & DONATION (1 COL ON XL) -->
+            <!-- RIGHT SIDEBAR: PICTURES & DONATION (DESKTOP ONLY) -->
             <div class="hidden xl:flex flex-col space-y-6">
                 <div class="bg-gray-800/90 border border-gray-700 rounded-xl overflow-hidden shadow-lg">
-                    <img src="https://images.unsplash.com/photo-1541348263662-e082662d82da?auto=format&fit=crop&w=800&q=80" alt="Sim Racing Cockpit" class="w-full h-56 object-cover hover:scale-105 transition-transform duration-300">
+                    <img src="https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&w=800&q=80" alt="Sim Racing Wheel Cockpit" class="w-full h-56 object-cover hover:scale-105 transition-transform duration-300">
                     <div class="p-3 text-center text-xs text-gray-400">Close Battles & Apex Hunting</div>
                 </div>
 
-                <!-- DONATION CARD WITH HUMOR -->
+                <!-- DONATION CARD (DESKTOP SIDEBAR) -->
                 <div class="bg-gradient-to-br from-indigo-900/60 to-gray-800 border border-yellow-500/40 rounded-xl p-5 shadow-xl text-center">
                     <h3 class="text-lg font-bold text-yellow-400 mb-2">⛽ Feed the Server Fuel Tank!</h3>
                     <p class="text-xs text-gray-300 mb-4 leading-relaxed">
