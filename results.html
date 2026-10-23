@@ -38,27 +38,6 @@
             border: 2px solid #d97706;
             box-shadow: 0 10px 25px -5px rgba(217, 119, 6, 0.25);
         }
-
-        /* Mobile merchandise: keep every product link touch-accessible */
-        #mobile-merch-overlay,
-        #mobile-merch-overlay * {
-            -webkit-tap-highlight-color: rgba(245, 158, 11, 0.18);
-        }
-        #mobile-merch-overlay a {
-            position: relative;
-            z-index: 2;
-            display: block;
-            pointer-events: auto !important;
-            touch-action: manipulation;
-            cursor: pointer;
-        }
-        #mobile-merch-overlay a img,
-        #mobile-merch-overlay a p {
-            pointer-events: none;
-        }
-        #mobile-merch-overlay button {
-            touch-action: manipulation;
-        }
     </style>
 </head>
 <body class="p-4 md:p-8 min-h-screen">
@@ -97,6 +76,46 @@
             </div>
         </div>
 
+        <!-- MOBILE MERCH TOGGLE BUTTON (MOBILE ONLY) -->
+        <div id="mobile-merch-toggle-container" class="block xl:hidden text-center mb-6">
+            <button id="toggle-merch-view-btn" class="inline-flex items-center gap-2 px-6 py-3 bg-amber-500 hover:bg-amber-400 text-gray-900 font-extrabold rounded-xl shadow-lg transition duration-200">
+                👕 Show Official SLR Merch
+            </button>
+        </div>
+
+        <!-- MOBILE DYNAMIC MERCH CONTAINER (INITIALLY HIDDEN, MOVES TO TOP WHEN CLICKED) -->
+        <div id="mobile-merch-inline-area" class="hidden xl:hidden mb-8 max-w-xl mx-auto space-y-6">
+            <!-- Item 1: T-Shirt -->
+            <div class="bg-gray-800/90 border border-amber-500/40 rounded-xl overflow-hidden shadow-lg p-4 text-center">
+                <div class="text-xs uppercase tracking-wider text-amber-400 font-bold mb-2">👕 Official SLR Merch</div>
+                <a href="https://www.amazon.de/dp/B0G2CMT37W" target="_blank" rel="sponsored">
+                    <img src="https://m.media-amazon.com/images/I/B1pppR4gVKL._CLa%7C2140%2C2000%7C71rK0MTWClL.png%7C0%2C0%2C2140%2C2000%2B0.0%2C0.0%2C2140.0%2C2000.0_AC_SX466_.png" alt="SLR Racing T-Shirt" class="w-full h-48 object-cover rounded-lg mb-3">
+                    <p class="text-xs font-semibold text-white hover:text-amber-300 transition-colors mb-2">SLR Limited Edition Racing T-Shirt</p>
+                </a>
+                <div class="mb-3">
+                    <a href="https://www.amazon.de/dp/B0G2CMT37W" target="_blank" rel="sponsored" class="text-xs text-amber-400 underline hover:text-amber-300 break-all">https://www.amazon.de/dp/B0G2CMT37W</a>
+                </div>
+                <a href="https://www.amazon.de/dp/B0G2CMT37W" target="_blank" rel="sponsored" class="inline-block w-full py-2 bg-amber-500 hover:bg-amber-400 text-gray-900 font-bold text-xs rounded-lg shadow transition">
+                    View on Amazon 🛒
+                </a>
+            </div>
+
+            <!-- Item 2: PopSocket / Gadget -->
+            <div class="bg-gray-800/90 border border-amber-500/40 rounded-xl overflow-hidden shadow-lg p-4 text-center">
+                <div class="text-xs uppercase tracking-wider text-amber-400 font-bold mb-2">👕 Official SLR Merch</div>
+                <a href="https://www.amazon.de/dp/B0HJJQVWKB" target="_blank" rel="sponsored">
+                    <img src="https://m.media-amazon.com/images/I/51EgehSNDlL._AC_SX679_.jpg" alt="SLR Gadget" class="w-full h-48 object-cover rounded-lg mb-3">
+                    <p class="text-xs font-semibold text-white hover:text-amber-300 transition-colors mb-2">SLR Limited Edition Mobile Phone Racing Gadget PopSocket</p>
+                </a>
+                <div class="mb-3">
+                    <a href="https://www.amazon.de/dp/B0HJJQVWKB" target="_blank" rel="sponsored" class="text-xs text-amber-400 underline hover:text-amber-300 break-all">https://www.amazon.de/dp/B0HJJQVWKB</a>
+                </div>
+                <a href="https://www.amazon.de/dp/B0HJJQVWKB" target="_blank" rel="sponsored" class="inline-block w-full py-2 bg-amber-500 hover:bg-amber-400 text-gray-900 font-bold text-xs rounded-lg shadow transition">
+                    View on Amazon 🛒
+                </a>
+            </div>
+        </div>
+
         <div id="loading" class="text-center text-blue-400 font-semibold mt-6">Loading Laptimes and Driver data from Simlearner servers...</div>
         <div id="error-message" class="hidden p-4 bg-red-800 text-white rounded-lg shadow-md text-center">
             Error loading the data. Ensure, the correct <strong>Spreadsheet ID</strong> is used and the document is public on the web.
@@ -116,10 +135,13 @@
                 <div class="bg-gray-800/90 border border-amber-500/40 rounded-xl overflow-hidden shadow-lg p-4 text-center">
                     <div class="text-xs uppercase tracking-wider text-amber-400 font-bold mb-2">👕 Official SLR Merch</div>
                     <a href="https://www.amazon.de/dp/B0G2CMT37W" target="_blank" rel="sponsored">
-                        <img src="https://m.media-amazon.com/images/I/B1pppR4gVKL._CLa%7C2140%2C2000%7C71rK0MTWClL.png%7C0%2C0%2C2140%2C2000%2B0.0%2C0.0%2C2140.0%2C2000.0_AC_SX466_.png?auto=format&fit=crop&w=800&q=80" alt="SLR Racing T-Shirt" class="w-full h-48 object-cover rounded-lg hover:scale-105 transition-transform duration-300 mb-3">
+                        <img src="https://m.media-amazon.com/images/I/B1pppR4gVKL._CLa%7C2140%2C2000%7C71rK0MTWClL.png%7C0%2C0%2C2140%2C2000%2B0.0%2C0.0%2C2140.0%2C2000.0_AC_SX466_.png" alt="SLR Racing T-Shirt" class="w-full h-48 object-cover rounded-lg hover:scale-105 transition-transform duration-300 mb-3">
                         <p class="text-xs font-semibold text-white hover:text-amber-300 transition-colors">SLR Limited Edition Racing T-Shirt</p>
                     </a>
-                    <a href="https://www.amazon.de/dp/B0G2CMT37W" target="_blank" rel="sponsored" class="mt-3 inline-block w-full py-2 bg-amber-500 hover:bg-amber-400 text-gray-900 font-bold text-xs rounded-lg shadow transition">
+                    <div class="mb-3">
+                        <a href="https://www.amazon.de/dp/B0G2CMT37W" target="_blank" rel="sponsored" class="text-xs text-amber-400 underline hover:text-amber-300 break-all">https://www.amazon.de/dp/B0G2CMT37W</a>
+                    </div>
+                    <a href="https://www.amazon.de/dp/B0G2CMT37W" target="_blank" rel="sponsored" class="inline-block w-full py-2 bg-amber-500 hover:bg-amber-400 text-gray-900 font-bold text-xs rounded-lg shadow transition">
                         View on Amazon 🛒
                     </a>
                 </div>
@@ -321,6 +343,9 @@
                         <img src="https://m.media-amazon.com/images/I/51EgehSNDlL._AC_SX679_.jpg?auto=format&fit=crop&w=800&q=80" alt="SLR Racing T-Shirt" class="w-full h-48 object-cover rounded-lg hover:scale-105 transition-transform duration-300 mb-3">
                         <p class="text-xs font-semibold text-white hover:text-amber-300 transition-colors">SLR Limited Edition Mobile Phone Racing Gadget PopSocket</p>
                     </a>
+                    <div class="mb-3">
+                        <a href="https://www.amazon.de/dp/B0HJJQVWKB" target="_blank" rel="sponsored" class="text-xs text-amber-400 underline hover:text-amber-300 break-all">https://www.amazon.de/dp/B0HJJQVWKB</a>
+                    </div>
                     <a href="https://www.amazon.de/dp/B0HJJQVWKB" target="_blank" rel="sponsored" class="mt-3 inline-block w-full py-2 bg-amber-500 hover:bg-amber-400 text-gray-900 font-bold text-xs rounded-lg shadow transition">
                         View on Amazon 🛒
                     </a>
@@ -343,210 +368,27 @@
         </div>
     </div>
 
-    <!-- MOBILE MERCH OVERLAY: product links remain native, tappable anchors -->
-    <div
-        id="mobile-merch-overlay"
-        class="xl:hidden bg-gray-900 border-2 border-amber-500 shadow-2xl p-4 rounded-xl"
-        style="
-            display: none;
-            position: fixed;
-            right: 16px;
-            bottom: 16px;
-            width: min(420px, calc(100vw - 32px));
-            max-height: 80vh;
-            max-height: 80dvh;
-            overflow-x: hidden;
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
-            overscroll-behavior: contain;
-            box-sizing: border-box;
-            z-index: 2147483646;
-            pointer-events: auto;
-            isolation: isolate;
-        "
-        aria-label="SLR merchandise"
-    >
-        <button
-            id="close-merch-btn"
-            type="button"
-            aria-label="Close merchandise"
-            style="
-                position: absolute;
-                top: 4px;
-                right: 8px;
-                z-index: 10;
-                cursor: pointer;
-                pointer-events: auto;
-                touch-action: manipulation;
-            "
-            class="text-gray-400 hover:text-white text-2xl font-bold px-2 py-1"
-        >&times;</button>
-
-        <div class="space-y-4 pt-8">
-            <!-- ITEM 1: T-SHIRT -->
-            <div class="bg-gray-800 border border-amber-500/40 rounded-xl shadow-lg p-3 text-center">
-                <div class="text-xs uppercase tracking-wider text-amber-400 font-bold mb-2">
-                    👕 SLR Limited Edition Racing T-Shirt
-                </div>
-
-                <a
-                    href="https://www.amazon.de/dp/B0G2CMT37W"
-                    target="_blank"
-                    rel="sponsored noopener noreferrer"
-                    aria-label="Open SLR Limited Edition Racing T-Shirt on Amazon"
-                >
-                    <img
-                        src="https://m.media-amazon.com/images/I/B1pppR4gVKL._CLa%7C2140%2C2000%7C71rK0MTWClL.png%7C0%2C0%2C2140%2C2000%2B0.0%2C0.0%2C2140.0%2C2000.0_AC_SX466_.png"
-                        alt="SLR Racing T-Shirt"
-                        class="w-full h-40 object-cover rounded-lg mb-2"
-                    >
-                    <p class="text-xs font-semibold text-white">
-                        SLR Limited Edition Racing T-Shirt
-                    </p>
-                </a>
-
-                <div class="mt-2 mb-3">
-                    <a
-                        href="https://www.amazon.de/dp/B0G2CMT37W"
-                        target="_blank"
-                        rel="sponsored noopener noreferrer"
-                        class="inline-block text-xs text-amber-400 underline break-all"
-                    >View T-Shirt on Amazon</a>
-                </div>
-
-                <a
-                    href="https://www.amazon.de/dp/B0G2CMT37W"
-                    target="_blank"
-                    rel="sponsored noopener noreferrer"
-                    class="block w-full py-3 bg-amber-500 hover:bg-amber-400 text-gray-900 font-bold text-xs rounded shadow text-center"
-                >View on Amazon 🛒</a>
-            </div>
-
-            <!-- ITEM 2: POPSOCKET / GADGET -->
-            <div class="bg-gray-800 border border-amber-500/40 rounded-xl shadow-lg p-3 text-center">
-                <div class="text-xs uppercase tracking-wider text-amber-400 font-bold mb-2">
-                    SLR Limited Edition Mobile Phone Racing Gadget PopSocket
-                </div>
-
-                <a
-                    href="https://www.amazon.de/dp/B0HJJQVWKB"
-                    target="_blank"
-                    rel="sponsored noopener noreferrer"
-                    aria-label="Open SLR Racing Gadget on Amazon"
-                >
-                    <img
-                        src="https://m.media-amazon.com/images/I/51EgehSNDlL._AC_SX679_.jpg"
-                        alt="SLR Racing Gadget"
-                        class="w-full h-40 object-cover rounded-lg mb-2"
-                    >
-                    <p class="text-xs font-semibold text-white">
-                        SLR Limited Edition Mobile Phone Racing Gadget PopSocket
-                    </p>
-                </a>
-
-                <div class="mt-2 mb-3">
-                    <a
-                        href="https://www.amazon.de/dp/B0HJJQVWKB"
-                        target="_blank"
-                        rel="sponsored noopener noreferrer"
-                        class="inline-block text-xs text-amber-400 underline break-all"
-                    >View Gadget on Amazon</a>
-                </div>
-
-                <a
-                    href="https://www.amazon.de/dp/B0HJJQVWKB"
-                    target="_blank"
-                    rel="sponsored noopener noreferrer"
-                    class="block w-full py-3 bg-amber-500 hover:bg-amber-400 text-gray-900 font-bold text-xs rounded shadow text-center"
-                >View on Amazon 🛒</a>
-            </div>
-        </div>
-    </div>
-
-    <!-- FLOATING MERCH TAB -->
-    <div
-        id="mobile-merch-tab"
-        role="button"
-        tabindex="0"
-        aria-label="Open merchandise"
-        aria-controls="mobile-merch-overlay"
-        aria-expanded="false"
-        style="
-            position: fixed;
-            right: 0;
-            bottom: 20px;
-            z-index: 2147483645;
-            pointer-events: auto;
-            touch-action: manipulation;
-            cursor: pointer;
-        "
-        class="xl:hidden bg-gray-900 border-2 border-r-0 border-amber-500 rounded-l-xl p-2 shadow-2xl animate-bounce flex items-center gap-2"
-    >
-        <img
-            src="https://m.media-amazon.com/images/I/B1pppR4gVKL._CLa%7C2140%2C2000%7C71rK0MTWClL.png%7C0%2C0%2C2140%2C2000%2B0.0%2C0.0%2C2140.0%2C2000.0_AC_SX466_.png"
-            alt="Merch"
-            class="w-12 h-12 object-cover rounded-lg border border-amber-500"
-        >
-        <span class="text-amber-400 font-extrabold text-xs pr-2">Merch 👕</span>
-    </div>
-
 <script>
-    // Mobile merchandise controls.
-    // Use native anchor navigation for Amazon links; do not cancel anchor clicks.
-    (() => {
-        const initMerchControls = () => {
-            const overlay = document.getElementById("mobile-merch-overlay");
-            const tab = document.getElementById("mobile-merch-tab");
-            const closeBtn = document.getElementById("close-merch-btn");
+    // Toggle script for mobile merch view inline insertion and smooth auto-scroll up
+    document.addEventListener("DOMContentLoaded", () => {
+        const toggleBtn = document.getElementById('toggle-merch-view-btn');
+        const merchArea = document.getElementById('mobile-merch-inline-area');
 
-            if (!overlay || !tab || !closeBtn) {
-                console.error("Merchandise overlay: one or more required elements are missing.");
-                return;
-            }
-
-            const openMerch = () => {
-                overlay.style.display = "block";
-                tab.style.display = "none";
-                tab.setAttribute("aria-expanded", "true");
-                tab.classList.remove("animate-bounce");
-            };
-
-            const closeMerch = () => {
-                overlay.style.display = "none";
-                tab.style.display = "flex";
-                tab.setAttribute("aria-expanded", "false");
-            };
-
-            tab.addEventListener("click", (event) => {
-                event.stopPropagation();
-                openMerch();
-            });
-
-            tab.addEventListener("keydown", (event) => {
-                if (event.key === "Enter" || event.key === " ") {
-                    event.preventDefault();
-                    openMerch();
+        if (toggleBtn && merchArea) {
+            toggleBtn.addEventListener('click', () => {
+                const isHidden = merchArea.classList.contains('hidden');
+                if (isHidden) {
+                    merchArea.classList.remove('hidden');
+                    toggleBtn.textContent = '👕 Hide Official SLR Merch';
+                    // Smooth scroll up to view the merch section instantly
+                    merchArea.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                } else {
+                    merchArea.classList.add('hidden');
+                    toggleBtn.textContent = '👕 Show Official SLR Merch';
                 }
             });
-
-            closeBtn.addEventListener("click", (event) => {
-                event.stopPropagation();
-                closeMerch();
-            });
-
-            // Ensure clicks inside the popup do not accidentally trigger page-level
-            // handlers. Do not preventDefault(): Amazon anchors must navigate normally.
-            overlay.addEventListener("click", (event) => {
-                event.stopPropagation();
-            });
-        };
-
-        if (document.readyState === "loading") {
-            document.addEventListener("DOMContentLoaded", initMerchControls, { once: true });
-        } else {
-            initMerchControls();
         }
-    })();
+    });
 
     // ========================================================
     // CONFIGURATION: BLACKLIST & FEATURED WHITELIST SECTION
