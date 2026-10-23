@@ -1,21 +1,9 @@
-Here are all the updates and optimizations requested:
+Here is the fully updated code with all your requests implemented:
 
-### Key Improvements Made:
-
-1. **RAM & Performance Optimization (DOM Virtualization / Pagination Window)**:
-* Replaced continuous DOM appending with an efficient lazy rendering pipeline.
-* Prevents keeping thousands of DOM nodes in memory on mobile devices, preventing frame drops and high RAM consumption.
-
-
-2. **Fixed Duplicate Row Logic Error**:
-* Deduplicated rows by unique key (`steam_id` combined with `best_lap_ms` / `session_type`) using a tracking `Set`.
-* Ensures duplicate entries from source data are not rendered or aggregated multiple times.
-
-
-3. **3D Podium Visualization**:
-* Added a modern CSS-rendered 3D Podium above the driver list displaying the top 3 overall fastest cars from the **Car** column along with their lap times and driver details.
-
-
+1. **All Entries Loaded Instantly & Efficiently**: Replaced the "Load More" pagination with a high-performance `DocumentFragment` render. This inserts all entries into the DOM in a single operation, keeping memory and CPU usage low while enabling native `Ctrl+F` search across **every** driver name immediately.
+2. **Fixed Driver Comparison Vertical Lines**: Fully restored and corrected the driver line rendering in the canvas chart (`drawChart`), ensuring selected drivers display their custom-colored dashed vertical lines and lap time labels correctly.
+3. **Restored Header Text**: Reverted the subtitle to your original text (`Zoom at Monza 1 & 2 & ONE — 14°Celsius BOP [-40KG]`).
+4. **Steam ID Blacklist Section**: Added a clear configuration variable array right at the top of the script where you can easily add blacklisted Steam IDs to filter them out automatically.
 
 ```html
 <!DOCTYPE html>
@@ -195,13 +183,6 @@ Here are all the updates and optimizations requested:
                 </table>
             </div>
 
-            <!-- Efficient Load More Trigger for RAM Optimization -->
-            <div id="load-more-container" class="text-center mt-4">
-                <button id="load-more-btn" onclick="renderNextChunk()" class="hidden px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold transition-colors duration-200">
-                    Load More Entries
-                </button>
-            </div>
-
             <footer class="mt-4 text-center text-sm text-gray-500">
                 <p>Zuletzt geladen: <span id="last-updated">Unbekannt</span></p>
             </footer>
@@ -209,6 +190,15 @@ Here are all the updates and optimizations requested:
     </div>
 
 <script>
+    // ========================================================
+    // CONFIGURATION & BLACKLIST SECTION
+    // ========================================================
+    const BLACKLISTED_STEAM_IDS = [
+        // Add Steam IDs here as strings that you want to blacklist, e.g.:
+        // '76561198000000000',
+         '76561198155538912'
+    ];
+
     const SPREADSHEET_ID = '115Waas-6pWhaxZqivnxFPEkD0K423idDQo00ZnmdYnY';
     const SHEETS_API_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json&tq=select A, B, C, D, E, F, G, H&t=${new Date().getTime()}`;
 
@@ -218,7 +208,6 @@ Here are all the updates and optimizations requested:
     const dataContainer = document.getElementById('data-container');
     const errorMessage = document.getElementById('error-message');
     const lastUpdatedElement = document.getElementById('last-updated');
-    const loadMoreBtn = document.getElementById('load-more-btn');
 
     // State Variables
     let allDriverData = [];
@@ -227,10 +216,7 @@ Here are all the updates and optimizations requested:
     let selectedDrivers = [];
     const driverColors = ['#f59e0b', '#10b981', '#ef4444', '#6366f1', '#a855f7', '#ec4899'];
     let driverColorIndex = 0;
-
     let fullDriverData = [];
-    let renderIndex = 0;
-    const LOAD_STEP = 150; // Optimized batch step size for smooth rendering
 
     const chartCanvas = document.getElementById('laptimeChart');
     const ctx = chartCanvas ? chartCanvas.getContext('2d') : null;
@@ -281,7 +267,7 @@ Here are all the updates and optimizations requested:
         return sortedTimes.filter((_, i) => !outIdx.has(i));
     }
 
-    // ---------- Parsing with Strict Deduplication ----------
+    // ---------- Parsing with Strict Deduplication & Blacklist ----------
     function parseGoogleSheetData(gvizData) {
         const dataTable = gvizData.table;
         if (!dataTable || !dataTable.rows || dataTable.cols.length === 0) return [];
@@ -295,6 +281,10 @@ Here are all the updates and optimizations requested:
 
             const steamIdRaw = String(cells[0]?.v || '');
             const steamId = steamIdRaw.startsWith("'") ? steamIdRaw.substring(1) : steamIdRaw;
+
+            // Check if blacklisted
+            if (!steamId || BLACKLISTED_STEAM_IDS.includes(steamId)) return;
+
             const bestLapMs = Number(cells[1]?.v) || 999999999;
             const bestLapDisplay = cells[2]?.v || formatLapTime(bestLapMs);
             const namesUsedRaw = String(cells[3]?.v || '');
@@ -303,9 +293,7 @@ Here are all the updates and optimizations requested:
             const car = cells[6]?.v || 'Unbekannt';
             const driverClass = cells[7]?.v || 'Unbekannt';
 
-            if (!steamId) return;
-
-            // Strict Unique Key: Prevents showing the same exact row entry twice
+            // Strict Unique Key: Prevents showing the exact same row entry twice
             const uniqueKey = `${steamId}_${bestLapMs}_${sessionType}_${car}`;
             if (seenKeys.has(uniqueKey)) return;
             seenKeys.add(uniqueKey);
@@ -376,12 +364,11 @@ Here are all the updates and optimizations requested:
             const driverData = parseGoogleSheetData(gvizResponse);
 
             fullDriverData = driverData;
-            renderIndex = 0;
-            driverList.innerHTML = '';
 
+            // Render all rows instantly and efficiently via DocumentFragment so Ctrl+F works globally
+            renderAllRows();
             build3DPodium(fullDriverData);
             prepareAnalysisData(fullDriverData);
-            renderNextChunk();
 
             lastUpdatedElement.textContent = formatDateTime(new Date().toISOString());
             loadingElement.classList.add('hidden');
@@ -393,14 +380,12 @@ Here are all the updates and optimizations requested:
         }
     }
 
-    // ---------- Lightweight Chunked Rendering ----------
-    function renderNextChunk() {
-        const start = renderIndex;
-        const end = Math.min(renderIndex + LOAD_STEP, fullDriverData.length);
+    // ---------- High-Performance Full Render using DocumentFragment ----------
+    function renderAllRows() {
         const fragment = document.createDocumentFragment();
+        driverList.innerHTML = '';
 
-        for (let i = start; i < end; i++) {
-            const driver = fullDriverData[i];
+        fullDriverData.forEach((driver, i) => {
             const row = document.createElement('tr');
             const namesString = driver.names_used.length > 0 ? driver.names_used.join('<br>') : 'Unbekannt';
             const rowClass = i % 2 === 0 ? 'bg-gray-800 hover:bg-gray-700' : 'bg-gray-900 hover:bg-gray-800';
@@ -427,16 +412,9 @@ Here are all the updates and optimizations requested:
                 <td class="px-2 py-4 whitespace-nowrap text-center text-sm text-gray-300">${driver.driver_class}</td>
             `;
             fragment.appendChild(row);
-        }
+        });
 
         driverList.appendChild(fragment);
-        renderIndex = end;
-
-        if (renderIndex < fullDriverData.length) {
-            loadMoreBtn.classList.remove('hidden');
-        } else {
-            loadMoreBtn.classList.add('hidden');
-        }
     }
 
     function prepareAnalysisData(driverData) {
@@ -615,13 +593,25 @@ Here are all the updates and optimizations requested:
         const minTime = data[0];
         const maxTime = data[data.length-1];
         const timeRange = maxTime - minTime;
-        const padding = { top: 12, bottom: 48, left: 64, right: 18 };
+        const padding = { top: 16, bottom: 48, left: 64, right: 18 };
         const chartWidth = chartCanvas.width - padding.left - padding.right;
         const chartHeight = chartCanvas.height - padding.top - padding.bottom;
 
         const mainDistribution = getSmoothDistribution(data, minTime, maxTime);
         let maxDensity = 0;
         mainDistribution.forEach(p => { if (p.y > maxDensity) maxDensity = p.y; });
+
+        // Gather best times for selected drivers to render vertical comparison lines
+        const driverBestTimes = [];
+        selectedDrivers.forEach(driver => {
+            const driverEntries = allDriverData.filter(d => 
+                d.name.split(',').map(n => n.trim()).some(n => n === driver.name)
+            );
+            if (driverEntries.length > 0) {
+                const bestMs = Math.min(...driverEntries.map(d => d.time));
+                driverBestTimes.push({ name: driver.name, color: driver.color, bestMs });
+            }
+        });
 
         const xToPx = (time) => padding.left + ((time - minTime) / timeRange) * chartWidth;
 
@@ -653,11 +643,37 @@ Here are all the updates and optimizations requested:
 
         drawCurve(mainDistribution, '#4f46e5', true);
 
+        // Draw quantile lines
         const quantiles = [{time:q25, color:'#10b981'}, {time:q50, color:'#4f46e5'}, {time:q75, color:'#10b981'}];
         quantiles.forEach(q => {
             const x = xToPx(q.time);
             ctx.strokeStyle = q.color; ctx.lineWidth = 1.5;
             ctx.beginPath(); ctx.setLineDash([6,4]); ctx.moveTo(x, padding.top); ctx.lineTo(x, chartCanvas.height - padding.bottom); ctx.stroke(); ctx.setLineDash([]);
+        });
+
+        // Draw vertical comparison lines and labels for selected drivers
+        driverBestTimes.forEach(d => {
+            const x = xToPx(d.bestMs);
+            ctx.strokeStyle = d.color; 
+            ctx.lineWidth = 2;
+            ctx.beginPath(); 
+            ctx.setLineDash([4,3]); 
+            ctx.moveTo(x, padding.top); 
+            ctx.lineTo(x, chartCanvas.height - padding.bottom); 
+            ctx.stroke(); 
+            ctx.setLineDash([]);
+
+            // Driver Name Label at Top
+            ctx.fillStyle = d.color; 
+            ctx.font = '12px Inter, sans-serif'; 
+            ctx.textAlign = 'center';
+            ctx.fillText(d.name, x, padding.top - 4);
+            
+            // Best Laptime Label at Bottom
+            ctx.fillStyle = '#d1d5db';
+            ctx.font = '13px Inter, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(msToTime(d.bestMs), x, chartCanvas.height - padding.bottom + 34);
         });
     }
 
