@@ -1,9 +1,12 @@
-Here is the fully updated code implementing all your new requests:
+Here is the complete, fully updated page code incorporating all your new requests:
 
-1. **Initial 500 Limit & "Load More" / "Load All" Buttons**: The table now loads only the top 500 entries initially to save RAM and maintain high performance. A **"Load More"** button and a **"Load All Drivers (Warning: High RAM)"** button are placed above the table.
-2. **Selected & Featured Driver Rows**: When you search and select drivers (or enable **Featured Drivers**), dedicated rows mirroring the main table format (showing position, lap time, driver name, steam profile, date, session, car, and class) automatically appear below the podium.
-3. **Featured Drivers Whitelist & Clan Tag Search**: Added configuration variables at the top for both **Whitelisted Steam IDs** and **Whitelisted Name Substrings** (e.g., `| SLR` for clan tags). A toggle button lets you activate/deactivate featured drivers instantly.
-4. **Retained Features**: Your custom subtitle ("Zoom at Monza..."), the 3D car podium, the blacklisted Steam IDs, and the corrected vertical comparison lines on the chart are all fully preserved.
+### What Was Updated:
+
+1. **Blacklist Applied to 3D Podium**: Drivers with blacklisted Steam IDs are now strictly filtered out before calculating the top 3 fastest cars on the podium.
+2. **Enhanced Whitelist & Clan Tag Search**: Whitelisted clan tag checks now scan every name used by drivers. Toggling "Featured Drivers" updates the dedicated **Special Leaderboard View** instantly without requiring a page reload.
+3. **Side Racing Car Cards**: Added visually engaging cards on the right sidebar showcasing high-resolution racing images.
+4. **Donation Section**: Added a PayPal donation section with a humorous "pay for our server fuel" description and a custom PayPal form/button snippet ready for your link.
+5. **SLR Mission Statement**: Integrated a styled section highlighting SimLearnerRacing's core mission statement and story.
 
 ```html
 <!DOCTYPE html>
@@ -70,165 +73,214 @@ Here is the fully updated code implementing all your new requests:
             Error loading the data. Ensure, the correct <strong>Spreadsheet ID</strong> is used and the document is public on the web.
         </div>
 
-        <!-- 3D CAR PODIUM SECTION -->
-        <div id="podium-section" class="hidden my-8 max-w-5xl mx-auto">
-            <h2 class="text-2xl font-bold text-center text-white mb-6 tracking-wide uppercase">🏎️ Fastest Cars Podium</h2>
-            <div class="podium-container grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
-                <!-- 2nd Place -->
-                <div id="podium-2" class="podium-card podium-2 order-2 md:order-1 rounded-xl p-5 text-center transform md:translate-y-4">
-                    <div class="text-3xl font-extrabold text-slate-300 mb-1">🥈 2nd</div>
-                    <div class="text-xs font-semibold tracking-wider text-slate-400 uppercase">Fastest Car</div>
-                    <h3 id="car-2-name" class="text-lg font-bold text-white mt-2 truncate">-</h3>
-                    <p id="car-2-time" class="text-xl font-mono font-extrabold text-slate-200 mt-1">-</p>
-                    <p id="car-2-driver" class="text-xs text-slate-400 mt-2 truncate">Driver: -</p>
-                </div>
-                <!-- 1st Place -->
-                <div id="podium-1" class="podium-card podium-1 order-1 md:order-2 rounded-xl p-6 text-center transform md:-translate-y-2">
-                    <div class="text-4xl font-extrabold text-yellow-400 mb-1">🥇 1st</div>
-                    <div class="text-xs font-semibold tracking-wider text-yellow-500 uppercase">Fastest Car</div>
-                    <h3 id="car-1-name" class="text-xl font-bold text-white mt-2 truncate">-</h3>
-                    <p id="car-1-time" class="text-2xl font-mono font-extrabold text-yellow-400 mt-1">-</p>
-                    <p id="car-1-driver" class="text-xs text-yellow-200/70 mt-2 truncate">Driver: -</p>
-                </div>
-                <!-- 3rd Place -->
-                <div id="podium-3" class="podium-card podium-3 order-3 md:order-3 rounded-xl p-5 text-center transform md:translate-y-8">
-                    <div class="text-3xl font-extrabold text-amber-500 mb-1">🥉 3rd</div>
-                    <div class="text-xs font-semibold tracking-wider text-amber-600 uppercase">Fastest Car</div>
-                    <h3 id="car-3-name" class="text-lg font-bold text-white mt-2 truncate">-</h3>
-                    <p id="car-3-time" class="text-xl font-mono font-extrabold text-amber-300 mt-1">-</p>
-                    <p id="car-3-driver" class="text-xs text-amber-400/70 mt-2 truncate">Driver: -</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- SELECTED & FEATURED DRIVERS SPECIAL TABLE SECTION -->
-        <div id="special-drivers-section" class="hidden my-8 max-w-7xl xl:max-w-[1550px] mx-auto bg-gray-900/80 border border-indigo-500/30 rounded-xl p-4 shadow-xl">
-            <h3 class="text-xl font-bold text-white mb-3 flex items-center gap-2">
-                <span>⭐ Selected & Featured Drivers View</span>
-            </h3>
-            <div class="table-container">
-                <table class="min-w-full divide-y divide-gray-700">
-                    <thead class="bg-gray-800">
-                        <tr>
-                            <th class="px-2 py-3 text-center text-md font-bold text-gray-300 uppercase">Pos</th>
-                            <th class="px-2 py-3 text-center text-md font-bold text-gray-300 uppercase">Laptime</th>
-                            <th class="px-2 py-3 text-center text-md font-bold text-gray-300 uppercase">Name(s)</th>
-                            <th class="px-2 py-3 text-center text-md font-bold text-gray-300 uppercase">Steam Profile</th>
-                            <th class="px-2 py-3 text-center text-md font-bold text-gray-300 uppercase">Date (UTC)</th>
-                            <th class="px-2 py-3 text-center text-md font-bold text-gray-300 uppercase">Session</th>
-                            <th class="px-2 py-3 text-center text-md font-bold text-gray-300 uppercase">Car</th>
-                            <th class="px-2 py-3 text-center text-md font-bold text-gray-300 uppercase">Class</th>
-                        </tr>
-                    </thead>
-                    <tbody id="special-drivers-list" class="bg-gray-900 divide-y divide-gray-700 text-white"></tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- ANALYSE-UI -->
-        <div id="analysis-ui" class="hidden mt-8 max-w-6xl mx-auto p-6 bg-white/5 rounded-xl border border-gray-700">
-            <h2 class="text-2xl font-bold text-white mb-3">Laptime-Distributionanalysis & Quantiles</h2>
-            <p class="text-sm text-gray-300 mb-4">Data will be read from Table (Laptime in ms and Name(s)).</p>
-
-            <div class="flex flex-wrap items-center gap-4 mb-4">
-                <button id="toggleFeaturedBtn" onclick="toggleFeaturedDrivers()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-colors duration-200">
-                    Featured Drivers: OFF
-                </button>
-            </div>
-
-            <div id="statusMessage" class="text-red-400 font-medium mt-4 hidden"></div>
-
-            <div id="driverSearchArea" class="hidden my-6 p-4 bg-white/3 rounded-lg border border-gray-700">
-                <h3 class="text-lg font-medium text-white mb-2">Driver-Comparison</h3>
-                <div class="relative">
-                    <input type="text" id="driverSearchInput" oninput="showSuggestions()" placeholder="Search Drivername..."
-                           class="w-full p-3 rounded-lg bg-gray-900 text-white" />
-                    <ul id="driverSuggestions" class="absolute z-30 w-full bg-gray-800 border border-gray-700 rounded shadow max-h-40 overflow-y-auto hidden mt-1 text-sm"></ul>
-                </div>
-                <div id="selectedDriversContainer" class="mt-4 flex flex-wrap gap-2"></div>
-            </div>
-
-            <div id="statsTable" class="hidden grid grid-cols-3 gap-4 text-center mb-4">
-                <div class="p-4 bg-gray-800 rounded-lg shadow-sm">
-                    <p class="text-xs text-gray-400">Certified drivers</p>
-                    <p id="countOutput" class="text-2xl font-bold text-white">0</p>
-                </div>
-                <div class="p-4 bg-gray-800 rounded-lg shadow-sm border border-red-700/30">
-                    <p class="text-xs text-gray-400">Removed outliers</p>
-                    <p id="outliersRemovedCountOutput" class="text-2xl font-bold text-red-400">0</p>
-                </div>
-                <div class="p-4 bg-gray-800 rounded-lg shadow-sm">
-                    <p class="text-xs text-gray-400">Median (50. Perzentile)</p>
-                    <p id="medianOutput" class="text-2xl font-bold text-white">-</p>
-                </div>
-            </div>
-
-            <div id="chartArea" class="hidden">
-                <h3 class="text-lg font-medium text-white mb-2">Smooth Curve</h3>
-                <div id="chartContainer" class="relative w-full border border-gray-700 rounded-lg p-1 bg-gray-900">
-                    <canvas id="laptimeChart"></canvas>
-                </div>
-                <div id="chartLegend" class="mt-2 text-sm text-gray-300">
-                    <span class="inline-block w-4 h-2 bg-indigo-600 mr-1 rounded"></span> Total distribution |
-                    <span id="legendDrivers" class="text-gray-200"></span>
-                </div>
-
-                <div id="quantileResults" class="mt-4 bg-gray-900/60 p-4 rounded-lg border border-gray-700">
-                    <h4 class="text-sm text-gray-200 mb-2">Quantiles of total distribution</h4>
-                    <div class="grid grid-cols-3 gap-2 text-sm">
-                        <div class="p-2 bg-gray-800 rounded-md">
-                            <p class="text-xs text-gray-400">25. Perzentile (Q1)</p>
-                            <p id="q25Output" class="text-lg font-bold text-green-400">-</p>
+        <!-- MAIN LAYOUT: LEFT CONTENT & RIGHT SIDEBAR -->
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+            
+            <!-- MAIN CONTENT AREA (3 COLS) -->
+            <div class="lg:col-span-3">
+                
+                <!-- 3D CAR PODIUM SECTION -->
+                <div id="podium-section" class="hidden my-4 max-w-5xl mx-auto">
+                    <h2 class="text-2xl font-bold text-center text-white mb-6 tracking-wide uppercase">🏎️ Fastest Cars Podium</h2>
+                    <div class="podium-container grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+                        <!-- 2nd Place -->
+                        <div id="podium-2" class="podium-card podium-2 order-2 md:order-1 rounded-xl p-5 text-center transform md:translate-y-4">
+                            <div class="text-3xl font-extrabold text-slate-300 mb-1">🥈 2nd</div>
+                            <div class="text-xs font-semibold tracking-wider text-slate-400 uppercase">Fastest Car</div>
+                            <h3 id="car-2-name" class="text-lg font-bold text-white mt-2 truncate">-</h3>
+                            <p id="car-2-time" class="text-xl font-mono font-extrabold text-slate-200 mt-1">-</p>
+                            <p id="car-2-driver" class="text-xs text-slate-400 mt-2 truncate">Driver: -</p>
                         </div>
-                        <div class="p-2 bg-gray-800 rounded-md border border-indigo-600/30">
-                            <p class="text-xs text-gray-400">50. Perzentile (Median)</p>
-                            <p id="q50Output" class="text-lg font-bold text-indigo-400">-</p>
+                        <!-- 1st Place -->
+                        <div id="podium-1" class="podium-card podium-1 order-1 md:order-2 rounded-xl p-6 text-center transform md:-translate-y-2">
+                            <div class="text-4xl font-extrabold text-yellow-400 mb-1">🥇 1st</div>
+                            <div class="text-xs font-semibold tracking-wider text-yellow-500 uppercase">Fastest Car</div>
+                            <h3 id="car-1-name" class="text-xl font-bold text-white mt-2 truncate">-</h3>
+                            <p id="car-1-time" class="text-2xl font-mono font-extrabold text-yellow-400 mt-1">-</p>
+                            <p id="car-1-driver" class="text-xs text-yellow-200/70 mt-2 truncate">Driver: -</p>
                         </div>
-                        <div class="p-2 bg-gray-800 rounded-md">
-                            <p class="text-xs text-gray-400">75. Perzentile (Q3)</p>
-                            <p id="q75Output" class="text-lg font-bold text-green-400">-</p>
+                        <!-- 3rd Place -->
+                        <div id="podium-3" class="podium-card podium-3 order-3 md:order-3 rounded-xl p-5 text-center transform md:translate-y-8">
+                            <div class="text-3xl font-extrabold text-amber-500 mb-1">🥉 3rd</div>
+                            <div class="text-xs font-semibold tracking-wider text-amber-600 uppercase">Fastest Car</div>
+                            <h3 id="car-3-name" class="text-lg font-bold text-white mt-2 truncate">-</h3>
+                            <p id="car-3-time" class="text-xl font-mono font-extrabold text-amber-300 mt-1">-</p>
+                            <p id="car-3-driver" class="text-xs text-amber-400/70 mt-2 truncate">Driver: -</p>
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
-        
-        <!-- Hauptdaten-Tabelle -->
-        <div id="data-container" class="hidden mt-6">
-            <!-- Table Controls for 500 limit / Load More / Load All -->
-            <div class="flex flex-wrap items-center justify-between gap-4 mb-4 bg-gray-800/80 p-4 rounded-xl border border-gray-700">
-                <p class="text-sm text-gray-300">Showing <span id="displayed-count">0</span> of <span id="total-count">0</span> entries</p>
-                <div class="flex flex-wrap gap-3">
-                    <button id="load-more-btn" onclick="loadMoreRows()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg text-sm transition-colors duration-200">
-                        Load More (500)
-                    </button>
-                    <button id="load-all-btn" onclick="loadAllRows()" class="px-4 py-2 bg-red-600/80 hover:bg-red-700 text-white font-semibold rounded-lg text-sm transition-colors duration-200">
-                        Load All Drivers — Warning: High RAM Usage
-                    </button>
+
+                <!-- SELECTED & FEATURED DRIVERS SPECIAL TABLE SECTION -->
+                <div id="special-drivers-section" class="hidden my-8 bg-gray-900/80 border border-indigo-500/30 rounded-xl p-4 shadow-xl">
+                    <h3 class="text-xl font-bold text-white mb-3 flex items-center gap-2">
+                        <span>⭐ Selected & Featured Drivers View</span>
+                    </h3>
+                    <div class="table-container">
+                        <table class="min-w-full divide-y divide-gray-700">
+                            <thead class="bg-gray-800">
+                                <tr>
+                                    <th class="px-2 py-3 text-center text-md font-bold text-gray-300 uppercase">Pos</th>
+                                    <th class="px-2 py-3 text-center text-md font-bold text-gray-300 uppercase">Laptime</th>
+                                    <th class="px-2 py-3 text-center text-md font-bold text-gray-300 uppercase">Name(s)</th>
+                                    <th class="px-2 py-3 text-center text-md font-bold text-gray-300 uppercase">Steam Profile</th>
+                                    <th class="px-2 py-3 text-center text-md font-bold text-gray-300 uppercase">Date (UTC)</th>
+                                    <th class="px-2 py-3 text-center text-md font-bold text-gray-300 uppercase">Session</th>
+                                    <th class="px-2 py-3 text-center text-md font-bold text-gray-300 uppercase">Car</th>
+                                    <th class="px-2 py-3 text-center text-md font-bold text-gray-300 uppercase">Class</th>
+                                </tr>
+                            </thead>
+                            <tbody id="special-drivers-list" class="bg-gray-900 divide-y divide-gray-700 text-white"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ANALYSE-UI -->
+                <div id="analysis-ui" class="hidden mt-8 p-6 bg-white/5 rounded-xl border border-gray-700">
+                    <h2 class="text-2xl font-bold text-white mb-3">Laptime-Distributionanalysis & Quantiles</h2>
+                    <p class="text-sm text-gray-300 mb-4">Data will be read from Table (Laptime in ms and Name(s)).</p>
+
+                    <div class="flex flex-wrap items-center gap-4 mb-4">
+                        <button id="toggleFeaturedBtn" onclick="toggleFeaturedDrivers()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-colors duration-200">
+                            Featured Drivers: OFF
+                        </button>
+                    </div>
+
+                    <div id="statusMessage" class="text-red-400 font-medium mt-4 hidden"></div>
+
+                    <div id="driverSearchArea" class="hidden my-6 p-4 bg-white/3 rounded-lg border border-gray-700">
+                        <h3 class="text-lg font-medium text-white mb-2">Driver-Comparison</h3>
+                        <div class="relative">
+                            <input type="text" id="driverSearchInput" oninput="showSuggestions()" placeholder="Search Drivername..."
+                                   class="w-full p-3 rounded-lg bg-gray-900 text-white" />
+                            <ul id="driverSuggestions" class="absolute z-30 w-full bg-gray-800 border border-gray-700 rounded shadow max-h-40 overflow-y-auto hidden mt-1 text-sm"></ul>
+                        </div>
+                        <div id="selectedDriversContainer" class="mt-4 flex flex-wrap gap-2"></div>
+                    </div>
+
+                    <div id="statsTable" class="hidden grid grid-cols-3 gap-4 text-center mb-4">
+                        <div class="p-4 bg-gray-800 rounded-lg shadow-sm">
+                            <p class="text-xs text-gray-400">Certified drivers</p>
+                            <p id="countOutput" class="text-2xl font-bold text-white">0</p>
+                        </div>
+                        <div class="p-4 bg-gray-800 rounded-lg shadow-sm border border-red-700/30">
+                            <p class="text-xs text-gray-400">Removed outliers</p>
+                            <p id="outliersRemovedCountOutput" class="text-2xl font-bold text-red-400">0</p>
+                        </div>
+                        <div class="p-4 bg-gray-800 rounded-lg shadow-sm">
+                            <p class="text-xs text-gray-400">Median (50. Perzentile)</p>
+                            <p id="medianOutput" class="text-2xl font-bold text-white">-</p>
+                        </div>
+                    </div>
+
+                    <div id="chartArea" class="hidden">
+                        <h3 class="text-lg font-medium text-white mb-2">Smooth Curve</h3>
+                        <div id="chartContainer" class="relative w-full border border-gray-700 rounded-lg p-1 bg-gray-900">
+                            <canvas id="laptimeChart"></canvas>
+                        </div>
+                        <div id="chartLegend" class="mt-2 text-sm text-gray-300">
+                            <span class="inline-block w-4 h-2 bg-indigo-600 mr-1 rounded"></span> Total distribution |
+                            <span id="legendDrivers" class="text-gray-200"></span>
+                        </div>
+
+                        <div id="quantileResults" class="mt-4 bg-gray-900/60 p-4 rounded-lg border border-gray-700">
+                            <h4 class="text-sm text-gray-200 mb-2">Quantiles of total distribution</h4>
+                            <div class="grid grid-cols-3 gap-2 text-sm">
+                                <div class="p-2 bg-gray-800 rounded-md">
+                                    <p class="text-xs text-gray-400">25. Perzentile (Q1)</p>
+                                    <p id="q25Output" class="text-lg font-bold text-green-400">-</p>
+                                </div>
+                                <div class="p-2 bg-gray-800 rounded-md border border-indigo-600/30">
+                                    <p class="text-xs text-gray-400">50. Perzentile (Median)</p>
+                                    <p id="q50Output" class="text-lg font-bold text-indigo-400">-</p>
+                                </div>
+                                <div class="p-2 bg-gray-800 rounded-md">
+                                    <p class="text-xs text-gray-400">75. Perzentile (Q3)</p>
+                                    <p id="q75Output" class="text-lg font-bold text-green-400">-</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MAIN TABLE -->
+                <div id="data-container" class="hidden mt-6">
+                    <div class="flex flex-wrap items-center justify-between gap-4 mb-4 bg-gray-800/80 p-4 rounded-xl border border-gray-700">
+                        <p class="text-sm text-gray-300">Showing <span id="displayed-count">0</span> of <span id="total-count">0</span> entries</p>
+                        <div class="flex flex-wrap gap-3">
+                            <button id="load-more-btn" onclick="loadMoreRows()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg text-sm transition-colors duration-200">
+                                Load More (500)
+                            </button>
+                            <button id="load-all-btn" onclick="loadAllRows()" class="px-4 py-2 bg-red-600/80 hover:bg-red-700 text-white font-semibold rounded-lg text-sm transition-colors duration-200">
+                                Load All Drivers — Warning: High RAM Usage
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="table-container bg-gray-900 rounded-xl shadow-lg border border-gray-700 p-4">
+                        <table class="min-w-full divide-y divide-gray-700">
+                            <thead class="bg-gray-800">
+                                <tr>
+                                    <th class="px-2 py-3 text-center text-lg font-bold text-gray-300 uppercase tracking-wider">Pos</th>
+                                    <th class="px-2 py-3 text-center text-lg font-bold text-gray-300 uppercase tracking-wider">Laptime</th>
+                                    <th class="px-2 py-3 text-center text-lg font-bold text-gray-300 uppercase tracking-wider">Name(s)</th>
+                                    <th class="px-2 py-3 text-center text-lg font-bold text-gray-300 uppercase tracking-wider">Steam Profile</th>
+                                    <th class="px-2 py-3 text-center text-lg font-bold text-gray-300 uppercase tracking-wider">Date (UTC)</th>
+                                    <th class="px-2 py-3 text-center text-lg font-bold text-gray-300 uppercase tracking-wider">Session</th>
+                                    <th class="px-2 py-3 text-center text-lg font-bold text-gray-300 uppercase tracking-wider">Car</th>
+                                    <th class="px-2 py-3 text-center text-lg font-bold text-gray-300 uppercase tracking-wider">Class</th>
+                                </tr>
+                            </thead>
+                            <tbody id="driver-list" class="bg-gray-900 divide-y divide-gray-700 text-white"></tbody>
+                        </table>
+                    </div>
+
+                    <footer class="mt-4 text-center text-sm text-gray-500">
+                        <p>Zuletzt geladen: <span id="last-updated">Unbekannt</span></p>
+                    </footer>
                 </div>
             </div>
 
-            <div class="table-container bg-gray-900 rounded-xl shadow-lg border border-gray-700 p-4">
-                <table class="min-w-full divide-y divide-gray-700">
-                    <thead class="bg-gray-800">
-                        <tr>
-                            <th class="px-2 py-3 text-center text-lg font-bold text-gray-300 uppercase tracking-wider">Pos</th>
-                            <th class="px-2 py-3 text-center text-lg font-bold text-gray-300 uppercase tracking-wider">Laptime</th>
-                            <th class="px-2 py-3 text-center text-lg font-bold text-gray-300 uppercase tracking-wider">Name(s)</th>
-                            <th class="px-2 py-3 text-center text-lg font-bold text-gray-300 uppercase tracking-wider">Steam Profile</th>
-                            <th class="px-2 py-3 text-center text-lg font-bold text-gray-300 uppercase tracking-wider">Date (UTC)</th>
-                            <th class="px-2 py-3 text-center text-lg font-bold text-gray-300 uppercase tracking-wider">Session</th>
-                            <th class="px-2 py-3 text-center text-lg font-bold text-gray-300 uppercase tracking-wider">Car</th>
-                            <th class="px-2 py-3 text-center text-lg font-bold text-gray-300 uppercase tracking-wider">Class</th>
-                        </tr>
-                    </thead>
-                    <tbody id="driver-list" class="bg-gray-900 divide-y divide-gray-700 text-white"></tbody>
-                </table>
-            </div>
+            <!-- RIGHT SIDEBAR: PICTURES, DONATION & MISSION STATEMENT -->
+            <div class="lg:col-span-1 space-y-6">
+                
+                <!-- SLR MISSION STATEMENT CARD -->
+                <div class="bg-gray-800/90 border border-indigo-500/30 rounded-xl p-5 shadow-lg">
+                    <h3 class="text-xl font-bold text-white mb-2 flex items-center gap-2">🏁 SLR Mission Statement</h3>
+                    <p class="text-xs text-gray-300 leading-relaxed">
+                        <strong>SimLearnerRacing (SLR)</strong> was founded on the belief that racing is more than a sport — it is a lifestyle that brings people together through passion, competition, and ambition.
+                    </p>
+                    <p class="text-xs text-gray-300 leading-relaxed mt-2">
+                        SLR provides coaching for drivers of all skill levels, from hobby racers to elite alien-level competitors, alongside professionally managed servers for Assetto Corsa Competizione and upcoming support for Assetto Corsa EVO.
+                    </p>
+                </div>
 
-            <footer class="mt-4 text-center text-sm text-gray-500">
-                <p>Zuletzt geladen: <span id="last-updated">Unbekannt</span></p>
-            </footer>
+                <!-- RACING PICTURES CARDS -->
+                <div class="bg-gray-800/90 border border-gray-700 rounded-xl overflow-hidden shadow-lg">
+                    <img src="https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?auto=format&fit=crop&w=800&q=80" alt="GT3 Racing Monza" class="w-full h-48 object-cover hover:scale-105 transition-transform duration-300">
+                    <div class="p-3 text-center text-xs text-gray-400">Pure GT3 Monza Speed</div>
+                </div>
+
+                <div class="bg-gray-800/90 border border-gray-700 rounded-xl overflow-hidden shadow-lg">
+                    <img src="https://images.unsplash.com/photo-1541348263662-e082662d82da?auto=format&fit=crop&w=800&q=80" alt="Sim Racing Cockpit" class="w-full h-48 object-cover hover:scale-105 transition-transform duration-300">
+                    <div class="p-3 text-center text-xs text-gray-400">Close Battles & Apex Hunting</div>
+                </div>
+
+                <!-- DONATION CARD WITH HUMOR -->
+                <div class="bg-gradient-to-br from-indigo-900/60 to-gray-800 border border-yellow-500/40 rounded-xl p-5 shadow-xl text-center">
+                    <h3 class="text-lg font-bold text-yellow-400 mb-2">⛽ Feed the Server Fuel Tank!</h3>
+                    <p class="text-xs text-gray-300 mb-4 leading-relaxed">
+                        Keeping SLR dedicated servers, telemetry tools, and high-octane lobbies running 24/7 costs a few real-world bucks! 
+                        If you shaved off 0.2s today or enjoy our leaderboards, consider throwing a small tip into our fuel tank to keep our digital engines revving. 🏎️💨
+                    </p>
+                    
+                    <!-- Hardcoded PayPal Donation Snippet Placeholder -->
+                    <a href="https://www.paypal.com" target="_blank" class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-yellow-500 hover:bg-yellow-400 text-gray-900 font-extrabold rounded-lg shadow-md transition duration-200">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944 3.72a.77.77 0 0 1 .762-.647h6.29c2.81 0 4.888.601 5.85 1.688.922 1.042 1.05 2.607.382 4.654-.863 2.645-2.83 4.195-5.853 4.195H9.686a.642.642 0 0 0-.633.541l-.986 6.18a.642.642 0 0 1-.991.006z"/></svg>
+                        Donate for Server Fuel
+                    </a>
+                </div>
+
+            </div>
         </div>
     </div>
 
@@ -245,8 +297,8 @@ Here is the fully updated code implementing all your new requests:
     ];
 
     const WHITELISTED_NAME_SUBSTRINGS = [
-        '| SLR' // Clan tags search whitelist
-        '|SLR'
+        '| SLR', // Clan tags search whitelist
+        'SLR'
     ];
     // ========================================================
 
@@ -270,7 +322,7 @@ Here is the fully updated code implementing all your new requests:
     let allDriverData = [];
     let finalMsTimes = [];
     let uniqueDrivers = [];
-    let selectedDrivers = []; // [{name, color}, ...]
+    let selectedDrivers = [];
     let featuredDriversActive = false;
     const driverColors = ['#f59e0b', '#10b981', '#ef4444', '#6366f1', '#a855f7', '#ec4899'];
     let driverColorIndex = 0;
@@ -342,6 +394,7 @@ Here is the fully updated code implementing all your new requests:
             const steamIdRaw = String(cells[0]?.v || '');
             const steamId = steamIdRaw.startsWith("'") ? steamIdRaw.substring(1) : steamIdRaw;
 
+            // Strict Blacklist Check
             if (!steamId || BLACKLISTED_STEAM_IDS.includes(steamId)) return;
 
             const bestLapMs = Number(cells[1]?.v) || 999999999;
@@ -373,11 +426,15 @@ Here is the fully updated code implementing all your new requests:
         return parsed;
     }
 
+    // ---------- Build 3D Podium for Top 3 Fastest Cars (Filtered) ----------
     function build3DPodium(driverData) {
         const fastestCars = [];
         const seenCars = new Set();
 
         for (const driver of driverData) {
+            // Guarantee blacklisted drivers are excluded
+            if (BLACKLISTED_STEAM_IDS.includes(driver.steam_id)) continue;
+
             if (driver.car && driver.car !== 'Unbekannt' && !seenCars.has(driver.car)) {
                 seenCars.add(driver.car);
                 fastestCars.push(driver);
@@ -513,13 +570,14 @@ Here is the fully updated code implementing all your new requests:
             });
         });
 
-        // 2. Add Featured Drivers if Active
+        // 2. Add Whitelisted / Featured Drivers across all driver names
         if (featuredDriversActive) {
             fullDriverData.forEach((d, idx) => {
                 const isWhitelistedId = WHITELISTED_STEAM_IDS.includes(d.steam_id);
-                const isWhitelistedName = WHITELISTED_NAME_SUBSTRINGS.some(sub => 
-                    d.names_raw.toLowerCase().includes(sub.toLowerCase())
-                );
+                const isWhitelistedName = d.names_used.some(name => 
+                    WHITELISTED_NAME_SUBSTRINGS.some(sub => name.toLowerCase().includes(sub.toLowerCase()))
+                ) || WHITELISTED_NAME_SUBSTRINGS.some(sub => d.names_raw.toLowerCase().includes(sub.toLowerCase()));
+
                 if ((isWhitelistedId || isWhitelistedName) && !seenSteamIds.has(d.steam_id + d.best_lap_ms)) {
                     seenSteamIds.add(d.steam_id + d.best_lap_ms);
                     driversToDisplay.push({ driver: d, pos: idx + 1 });
