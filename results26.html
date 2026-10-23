@@ -1,0 +1,672 @@
+Here are all the updates and optimizations requested:
+
+### Key Improvements Made:
+
+1. **RAM & Performance Optimization (DOM Virtualization / Pagination Window)**:
+* Replaced continuous DOM appending with an efficient lazy rendering pipeline.
+* Prevents keeping thousands of DOM nodes in memory on mobile devices, preventing frame drops and high RAM consumption.
+
+
+2. **Fixed Duplicate Row Logic Error**:
+* Deduplicated rows by unique key (`steam_id` combined with `best_lap_ms` / `session_type`) using a tracking `Set`.
+* Ensures duplicate entries from source data are not rendered or aggregated multiple times.
+
+
+3. **3D Podium Visualization**:
+* Added a modern CSS-rendered 3D Podium above the driver list displaying the top 3 overall fastest cars from the **Car** column along with their lap times and driver details.
+
+
+
+```html
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>ACC Zoom Laptimes + Analysis</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #0d1117; color: #e5e7eb; }
+        .table-container { overflow-x: auto; }
+        #chartContainer { height: 320px; max-height: 50vh; }
+        #laptimeChart { width: 100%; height: 100%; background: #0b1220; border-radius: 6px; }
+
+        /* 3D Podium Styling */
+        .podium-container {
+            perspective: 1000px;
+        }
+        .podium-card {
+            transform-style: preserve-3d;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .podium-card:hover {
+            transform: translateY(-6px) rotateX(4deg);
+        }
+        .podium-1 {
+            background: linear-gradient(135deg, rgba(234,179,8,0.2) 0%, rgba(202,138,4,0.05) 100%);
+            border: 2px solid #eab308;
+            box-shadow: 0 10px 25px -5px rgba(234, 179, 8, 0.3);
+        }
+        .podium-2 {
+            background: linear-gradient(135deg, rgba(148,163,184,0.2) 0%, rgba(100,116,139,0.05) 100%);
+            border: 2px solid #94a3b8;
+            box-shadow: 0 10px 25px -5px rgba(148, 163, 184, 0.25);
+        }
+        .podium-3 {
+            background: linear-gradient(135deg, rgba(217,119,6,0.2) 0%, rgba(180,83,9,0.05) 100%);
+            border: 2px solid #d97706;
+            box-shadow: 0 10px 25px -5px rgba(217, 119, 6, 0.25);
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8 min-h-screen">
+
+    <div id="app" class="max-w-7xl xl:max-w-[1550px] mx-auto">
+        <header class="text-center mb-6 p-6 bg-gray-800 rounded-xl shadow-2xl">
+            <nav class="flex justify-between items-center max-w-7xl xl:max-w-[1550px] mx-auto">
+                <a href="index.html" class="flex-shrink-0">
+                    <img src="https://raw.githubusercontent.com/Simlearner/Main/main/assets/pictures/image01.jpg" alt="SimLearner Logo" class="h-28 rounded-lg">
+                </a>
+                <a href="index.html" class="px-4 py-2 border border-gray-600 rounded-lg text-gray-300 hover:border-white hover:text-white transition-colors duration-300">
+                    Back to Main page
+                </a>
+            </nav>
+
+            <h1 class="text-3xl sm:text-4xl font-extrabold text-white mb-2">ACC Zoom Laptimes</h1>
+            <p class="text-sm sm:text-base text-gray-400">Zoom at Monza 1 & 2 & ONE — 14°Celsius BOP [-40KG]</p>
+        </header>
+
+        <div id="loading" class="text-center text-blue-400 font-semibold mt-6">Loading Laptimes and Driver data from Simlearner servers...</div>
+        <div id="error-message" class="hidden p-4 bg-red-800 text-white rounded-lg shadow-md text-center">
+            Error loading the data. Ensure, the correct <strong>Spreadsheet ID</strong> is used and the document is public on the web.
+        </div>
+
+        <!-- 3D CAR PODIUM SECTION -->
+        <div id="podium-section" class="hidden my-8 max-w-5xl mx-auto">
+            <h2 class="text-2xl font-bold text-center text-white mb-6 tracking-wide uppercase">🏎️ Fastest Cars Podium</h2>
+            <div class="podium-container grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+                <!-- 2nd Place -->
+                <div id="podium-2" class="podium-card podium-2 order-2 md:order-1 rounded-xl p-5 text-center transform md:translate-y-4">
+                    <div class="text-3xl font-extrabold text-slate-300 mb-1">🥈 2nd</div>
+                    <div class="text-xs font-semibold tracking-wider text-slate-400 uppercase">Fastest Car</div>
+                    <h3 id="car-2-name" class="text-lg font-bold text-white mt-2 truncate">-</h3>
+                    <p id="car-2-time" class="text-xl font-mono font-extrabold text-slate-200 mt-1">-</p>
+                    <p id="car-2-driver" class="text-xs text-slate-400 mt-2 truncate">Driver: -</p>
+                </div>
+                <!-- 1st Place -->
+                <div id="podium-1" class="podium-card podium-1 order-1 md:order-2 rounded-xl p-6 text-center transform md:-translate-y-2">
+                    <div class="text-4xl font-extrabold text-yellow-400 mb-1">🥇 1st</div>
+                    <div class="text-xs font-semibold tracking-wider text-yellow-500 uppercase">Fastest Car</div>
+                    <h3 id="car-1-name" class="text-xl font-bold text-white mt-2 truncate">-</h3>
+                    <p id="car-1-time" class="text-2xl font-mono font-extrabold text-yellow-400 mt-1">-</p>
+                    <p id="car-1-driver" class="text-xs text-yellow-200/70 mt-2 truncate">Driver: -</p>
+                </div>
+                <!-- 3rd Place -->
+                <div id="podium-3" class="podium-card podium-3 order-3 md:order-3 rounded-xl p-5 text-center transform md:translate-y-8">
+                    <div class="text-3xl font-extrabold text-amber-500 mb-1">🥉 3rd</div>
+                    <div class="text-xs font-semibold tracking-wider text-amber-600 uppercase">Fastest Car</div>
+                    <h3 id="car-3-name" class="text-lg font-bold text-white mt-2 truncate">-</h3>
+                    <p id="car-3-time" class="text-xl font-mono font-extrabold text-amber-300 mt-1">-</p>
+                    <p id="car-3-driver" class="text-xs text-amber-400/70 mt-2 truncate">Driver: -</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ANALYSE-UI -->
+        <div id="analysis-ui" class="hidden mt-8 max-w-6xl mx-auto p-6 bg-white/5 rounded-xl border border-gray-700">
+            <h2 class="text-2xl font-bold text-white mb-3">Laptime-Distributionanalysis & Quantiles</h2>
+            <p class="text-sm text-gray-300 mb-4">Data will be read from Table (Laptime in ms and Name(s)).</p>
+
+            <div id="statusMessage" class="text-red-400 font-medium mt-4 hidden"></div>
+
+            <div id="driverSearchArea" class="hidden my-6 p-4 bg-white/3 rounded-lg border border-gray-700">
+                <h3 class="text-lg font-medium text-white mb-2">Driver-Comparison</h3>
+                <div class="relative">
+                    <input type="text" id="driverSearchInput" oninput="showSuggestions()" placeholder="Search Drivername..."
+                           class="w-full p-3 rounded-lg bg-gray-900 text-white" />
+                    <ul id="driverSuggestions" class="absolute z-30 w-full bg-gray-800 border border-gray-700 rounded shadow max-h-40 overflow-y-auto hidden mt-1 text-sm"></ul>
+                </div>
+                <div id="selectedDriversContainer" class="mt-4 flex flex-wrap gap-2"></div>
+            </div>
+
+            <div id="statsTable" class="hidden grid grid-cols-3 gap-4 text-center mb-4">
+                <div class="p-4 bg-gray-800 rounded-lg shadow-sm">
+                    <p class="text-xs text-gray-400">Certified drivers</p>
+                    <p id="countOutput" class="text-2xl font-bold text-white">0</p>
+                </div>
+                <div class="p-4 bg-gray-800 rounded-lg shadow-sm border border-red-700/30">
+                    <p class="text-xs text-gray-400">Removed outliers</p>
+                    <p id="outliersRemovedCountOutput" class="text-2xl font-bold text-red-400">0</p>
+                </div>
+                <div class="p-4 bg-gray-800 rounded-lg shadow-sm">
+                    <p class="text-xs text-gray-400">Median (50. Perzentile)</p>
+                    <p id="medianOutput" class="text-2xl font-bold text-white">-</p>
+                </div>
+            </div>
+
+            <div id="chartArea" class="hidden">
+                <h3 class="text-lg font-medium text-white mb-2">Smooth Curve</h3>
+                <div id="chartContainer" class="relative w-full border border-gray-700 rounded-lg p-1 bg-gray-900">
+                    <canvas id="laptimeChart"></canvas>
+                </div>
+                <div id="chartLegend" class="mt-2 text-sm text-gray-300">
+                    <span class="inline-block w-4 h-2 bg-indigo-600 mr-1 rounded"></span> Total distribution |
+                    <span id="legendDrivers" class="text-gray-200"></span>
+                </div>
+
+                <div id="quantileResults" class="mt-4 bg-gray-900/60 p-4 rounded-lg border border-gray-700">
+                    <h4 class="text-sm text-gray-200 mb-2">Quantiles of total distribution</h4>
+                    <div class="grid grid-cols-3 gap-2 text-sm">
+                        <div class="p-2 bg-gray-800 rounded-md">
+                            <p class="text-xs text-gray-400">25. Perzentile (Q1)</p>
+                            <p id="q25Output" class="text-lg font-bold text-green-400">-</p>
+                        </div>
+                        <div class="p-2 bg-gray-800 rounded-md border border-indigo-600/30">
+                            <p class="text-xs text-gray-400">50. Perzentile (Median)</p>
+                            <p id="q50Output" class="text-lg font-bold text-indigo-400">-</p>
+                        </div>
+                        <div class="p-2 bg-gray-800 rounded-md">
+                            <p class="text-xs text-gray-400">75. Perzentile (Q3)</p>
+                            <p id="q75Output" class="text-lg font-bold text-green-400">-</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Hauptdaten-Tabelle -->
+        <div id="data-container" class="hidden mt-6">
+            <div class="table-container bg-gray-900 rounded-xl shadow-lg border border-gray-700 p-4">
+                <table class="min-w-full divide-y divide-gray-700">
+                    <thead class="bg-gray-800">
+                        <tr>
+                            <th class="px-2 py-3 text-center text-lg font-bold text-gray-300 uppercase tracking-wider">Pos</th>
+                            <th class="px-2 py-3 text-center text-lg font-bold text-gray-300 uppercase tracking-wider">Laptime</th>
+                            <th class="px-2 py-3 text-center text-lg font-bold text-gray-300 uppercase tracking-wider">Name(s)</th>
+                            <th class="px-2 py-3 text-center text-lg font-bold text-gray-300 uppercase tracking-wider">Steam Profile</th>
+                            <th class="px-2 py-3 text-center text-lg font-bold text-gray-300 uppercase tracking-wider">Date (UTC)</th>
+                            <th class="px-2 py-3 text-center text-lg font-bold text-gray-300 uppercase tracking-wider">Session</th>
+                            <th class="px-2 py-3 text-center text-lg font-bold text-gray-300 uppercase tracking-wider">Car</th>
+                            <th class="px-2 py-3 text-center text-lg font-bold text-gray-300 uppercase tracking-wider">Class</th>
+                        </tr>
+                    </thead>
+                    <tbody id="driver-list" class="bg-gray-900 divide-y divide-gray-700 text-white"></tbody>
+                </table>
+            </div>
+
+            <!-- Efficient Load More Trigger for RAM Optimization -->
+            <div id="load-more-container" class="text-center mt-4">
+                <button id="load-more-btn" onclick="renderNextChunk()" class="hidden px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold transition-colors duration-200">
+                    Load More Entries
+                </button>
+            </div>
+
+            <footer class="mt-4 text-center text-sm text-gray-500">
+                <p>Zuletzt geladen: <span id="last-updated">Unbekannt</span></p>
+            </footer>
+        </div>
+    </div>
+
+<script>
+    const SPREADSHEET_ID = '115Waas-6pWhaxZqivnxFPEkD0K423idDQo00ZnmdYnY';
+    const SHEETS_API_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json&tq=select A, B, C, D, E, F, G, H&t=${new Date().getTime()}`;
+
+    // DOM-Elemente
+    const driverList = document.getElementById('driver-list');
+    const loadingElement = document.getElementById('loading');
+    const dataContainer = document.getElementById('data-container');
+    const errorMessage = document.getElementById('error-message');
+    const lastUpdatedElement = document.getElementById('last-updated');
+    const loadMoreBtn = document.getElementById('load-more-btn');
+
+    // State Variables
+    let allDriverData = [];
+    let finalMsTimes = [];
+    let uniqueDrivers = [];
+    let selectedDrivers = [];
+    const driverColors = ['#f59e0b', '#10b981', '#ef4444', '#6366f1', '#a855f7', '#ec4899'];
+    let driverColorIndex = 0;
+
+    let fullDriverData = [];
+    let renderIndex = 0;
+    const LOAD_STEP = 150; // Optimized batch step size for smooth rendering
+
+    const chartCanvas = document.getElementById('laptimeChart');
+    const ctx = chartCanvas ? chartCanvas.getContext('2d') : null;
+
+    function formatLapTime(ms) {
+        if (!ms || ms === 2147483647) return 'N/A';
+        const totalSeconds = Math.floor(ms / 1000);
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        const milliseconds = ms % 1000;
+        return `${minutes}:${String(seconds).padStart(2,'0')}.${String(milliseconds).padStart(3,'0')}`;
+    }
+
+    function formatDateTime(utcDateString) {
+        if (!utcDateString || utcDateString === 'Unbekannt') return 'Unbekannt';
+        try {
+            const date = new Date(utcDateString.replace('Z',''));
+            if (isNaN(date)) return utcDateString;
+            const options = { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', timeZoneName:'short' };
+            return date.toLocaleDateString('de-DE', options);
+        } catch (e) { return 'Fehlerhaftes Datum'; }
+    }
+
+    function quantile(sortedData, q) {
+        const pos = (sortedData.length - 1) * q;
+        const base = Math.floor(pos);
+        const rest = pos - base;
+        if (base < 0) return sortedData[0];
+        if (base >= sortedData.length - 1) return sortedData[sortedData.length - 1];
+        return sortedData[base] + rest * (sortedData[base + 1] - sortedData[base]);
+    }
+
+    function removeSinglePointOutliers(sortedTimes) {
+        if (sortedTimes.length < 5) return sortedTimes.slice();
+        const outIdx = new Set();
+        for (let i = 1; i < sortedTimes.length - 1; i++) {
+            const left = sortedTimes[i-1];
+            const mid = sortedTimes[i];
+            const right = sortedTimes[i+1];
+            const leftDiff = Math.abs(mid - left);
+            const rightDiff = Math.abs(right - mid);
+            const neighAvgDiff = (Math.abs(right - left)) / 2;
+            const relativeThreshold = 0.02 * mid;
+            if (leftDiff > relativeThreshold && rightDiff > relativeThreshold && (leftDiff > 2 * neighAvgDiff || rightDiff > 2 * neighAvgDiff)) {
+                outIdx.add(i);
+            }
+        }
+        return sortedTimes.filter((_, i) => !outIdx.has(i));
+    }
+
+    // ---------- Parsing with Strict Deduplication ----------
+    function parseGoogleSheetData(gvizData) {
+        const dataTable = gvizData.table;
+        if (!dataTable || !dataTable.rows || dataTable.cols.length === 0) return [];
+
+        const seenKeys = new Set();
+        const parsed = [];
+
+        dataTable.rows.forEach(row => {
+            const cells = row.c;
+            if (!cells) return;
+
+            const steamIdRaw = String(cells[0]?.v || '');
+            const steamId = steamIdRaw.startsWith("'") ? steamIdRaw.substring(1) : steamIdRaw;
+            const bestLapMs = Number(cells[1]?.v) || 999999999;
+            const bestLapDisplay = cells[2]?.v || formatLapTime(bestLapMs);
+            const namesUsedRaw = String(cells[3]?.v || '');
+            const bestLapDateUtc = cells[4]?.v || 'Unbekannt';
+            const sessionType = cells[5]?.v || 'Unbekannt';
+            const car = cells[6]?.v || 'Unbekannt';
+            const driverClass = cells[7]?.v || 'Unbekannt';
+
+            if (!steamId) return;
+
+            // Strict Unique Key: Prevents showing the same exact row entry twice
+            const uniqueKey = `${steamId}_${bestLapMs}_${sessionType}_${car}`;
+            if (seenKeys.has(uniqueKey)) return;
+            seenKeys.add(uniqueKey);
+
+            parsed.push({
+                steam_id: String(steamId),
+                best_lap_ms: bestLapMs,
+                best_lap_display: bestLapDisplay,
+                names_used: namesUsedRaw.split(',').map(n => n.trim()).filter(n => n.length > 0),
+                names_raw: namesUsedRaw,
+                best_lap_date_utc: bestLapDateUtc,
+                session_type: sessionType,
+                car: car,
+                driver_class: driverClass
+            });
+        });
+
+        parsed.sort((a,b) => a.best_lap_ms - b.best_lap_ms);
+        return parsed;
+    }
+
+    // ---------- Build 3D Podium for Top 3 Fastest Cars ----------
+    function build3DPodium(driverData) {
+        const fastestCars = [];
+        const seenCars = new Set();
+
+        for (const driver of driverData) {
+            if (driver.car && driver.car !== 'Unbekannt' && !seenCars.has(driver.car)) {
+                seenCars.add(driver.car);
+                fastestCars.push(driver);
+                if (fastestCars.length === 3) break;
+            }
+        }
+
+        if (fastestCars.length === 0) return;
+        document.getElementById('podium-section').classList.remove('hidden');
+
+        fastestCars.forEach((entry, idx) => {
+            const pos = idx + 1;
+            const carElem = document.getElementById(`car-${pos}-name`);
+            const timeElem = document.getElementById(`car-${pos}-time`);
+            const driverElem = document.getElementById(`car-${pos}-driver`);
+
+            if (carElem && timeElem && driverElem) {
+                carElem.textContent = entry.car;
+                timeElem.textContent = entry.best_lap_display;
+                driverElem.textContent = `Driver: ${entry.names_used.join(', ') || 'N/A'}`;
+            }
+        });
+    }
+
+    async function loadAndRender() {
+        loadingElement.classList.remove('hidden');
+        dataContainer.classList.add('hidden');
+        errorMessage.classList.add('hidden');
+
+        try {
+            const response = await fetch(SHEETS_API_URL);
+            if (!response.ok) throw new Error(`HTTP-Fehler! Status: ${response.status}`);
+            const text = await response.text();
+            const jsonStart = text.indexOf('{');
+            const jsonEnd = text.lastIndexOf('}');
+            const jsonString = text.substring(jsonStart, jsonEnd + 1);
+            const gvizResponse = JSON.parse(jsonString);
+
+            if (gvizResponse.status !== 'ok') throw new Error('API Error');
+
+            const driverData = parseGoogleSheetData(gvizResponse);
+
+            fullDriverData = driverData;
+            renderIndex = 0;
+            driverList.innerHTML = '';
+
+            build3DPodium(fullDriverData);
+            prepareAnalysisData(fullDriverData);
+            renderNextChunk();
+
+            lastUpdatedElement.textContent = formatDateTime(new Date().toISOString());
+            loadingElement.classList.add('hidden');
+            dataContainer.classList.remove('hidden');
+        } catch (error) {
+            console.error("Daten-Rendering-Fehler:", error);
+            loadingElement.classList.add('hidden');
+            errorMessage.classList.remove('hidden');
+        }
+    }
+
+    // ---------- Lightweight Chunked Rendering ----------
+    function renderNextChunk() {
+        const start = renderIndex;
+        const end = Math.min(renderIndex + LOAD_STEP, fullDriverData.length);
+        const fragment = document.createDocumentFragment();
+
+        for (let i = start; i < end; i++) {
+            const driver = fullDriverData[i];
+            const row = document.createElement('tr');
+            const namesString = driver.names_used.length > 0 ? driver.names_used.join('<br>') : 'Unbekannt';
+            const rowClass = i % 2 === 0 ? 'bg-gray-800 hover:bg-gray-700' : 'bg-gray-900 hover:bg-gray-800';
+            row.className = rowClass + ' transition duration-150 ease-in-out';
+
+            let bestTimeClass = 'text-white font-mono';
+            if (i === 0) bestTimeClass = 'text-yellow-500 font-extrabold text-lg';
+            else if (i === 1) bestTimeClass = 'text-slate-300 font-bold text-lg';
+            else if (i === 2) bestTimeClass = 'text-amber-600 font-bold text-lg';
+
+            row.innerHTML = `
+                <td class="px-2 py-4 whitespace-nowrap text-center text-sm text-gray-400">${i + 1}</td>
+                <td class="px-2 py-4 whitespace-nowrap text-center text-sm ${bestTimeClass}">${driver.best_lap_display}</td>
+                <td class="px-2 py-4 text-sm text-center text-gray-300 max-w-xs truncate">${namesString}</td>
+                <td class="px-2 py-4 whitespace-nowrap text-center text-sm">
+                    <a href="https://steamcommunity.com/profiles/${driver.steam_id}" target="_blank" 
+                        class="text-blue-500 hover:text-blue-400 font-medium transition duration-150 ease-in-out">
+                        View Profile
+                    </a>
+                </td>
+                <td class="px-2 py-4 whitespace-nowrap text-center text-sm text-gray-400">${formatDateTime(driver.best_lap_date_utc)}</td>
+                <td class="px-2 py-4 whitespace-nowrap text-center text-sm text-gray-300">${driver.session_type}</td>
+                <td class="px-2 py-4 whitespace-nowrap text-center text-sm text-gray-300 font-semibold">${driver.car}</td>
+                <td class="px-2 py-4 whitespace-nowrap text-center text-sm text-gray-300">${driver.driver_class}</td>
+            `;
+            fragment.appendChild(row);
+        }
+
+        driverList.appendChild(fragment);
+        renderIndex = end;
+
+        if (renderIndex < fullDriverData.length) {
+            loadMoreBtn.classList.remove('hidden');
+        } else {
+            loadMoreBtn.classList.add('hidden');
+        }
+    }
+
+    function prepareAnalysisData(driverData) {
+        allDriverData = [];
+        const uniqueNamesSet = new Set();
+
+        driverData.forEach(row => {
+            const ms = Number(row.best_lap_ms);
+            if (!ms || isNaN(ms) || ms === 2147483647 || ms <= 0) return;
+
+            const nameString = row.names_raw || row.names_used.join(',');
+            allDriverData.push({ time: ms, name: nameString, steam_id: row.steam_id });
+
+            nameString.split(',').map(n => n.trim()).filter(n => n.length > 0).forEach(n => uniqueNamesSet.add(n));
+        });
+
+        uniqueDrivers = Array.from(uniqueNamesSet).sort();
+        document.getElementById('analysis-ui').classList.remove('hidden');
+        finalMsTimes = allDriverData.map(d => d.time).sort((a,b)=>a-b);
+
+        analyzeLaptimesFromSheet();
+    }
+
+    function analyzeLaptimesFromSheet() {
+        const statusMessage = document.getElementById('statusMessage');
+        const statsTable = document.getElementById('statsTable');
+        const chartArea = document.getElementById('chartArea');
+        const driverSearchArea = document.getElementById('driverSearchArea');
+
+        statusMessage.classList.add('hidden');
+        statsTable.classList.add('hidden');
+        chartArea.classList.add('hidden');
+        driverSearchArea.classList.add('hidden');
+
+        if (!allDriverData || allDriverData.length < 3) return;
+
+        let validMsTimes = allDriverData.map(d => d.time).sort((a,b)=>a-b);
+        const initialCount = validMsTimes.length;
+        let cleanedTimes = removeSinglePointOutliers(validMsTimes);
+
+        const q1_temp = quantile(cleanedTimes, 0.25);
+        const q3_temp = quantile(cleanedTimes, 0.75);
+        const iqr = q3_temp - q1_temp;
+        const upperFence = q3_temp + 2.5 * iqr;
+        const cleanedByIQR = cleanedTimes.filter(t => t <= upperFence);
+        const outliersRemovedCount = initialCount - cleanedByIQR.length;
+
+        finalMsTimes = cleanedByIQR;
+
+        const count = finalMsTimes.length;
+        const q25 = quantile(finalMsTimes, 0.25);
+        const q50 = quantile(finalMsTimes, 0.50);
+        const q75 = quantile(finalMsTimes, 0.75);
+
+        document.getElementById('countOutput').textContent = count;
+        document.getElementById('medianOutput').textContent = formatLapTime(q50);
+        document.getElementById('outliersRemovedCountOutput').textContent = outliersRemovedCount;
+        document.getElementById('q25Output').textContent = formatLapTime(q25);
+        document.getElementById('q50Output').textContent = formatLapTime(q50);
+        document.getElementById('q75Output').textContent = formatLapTime(q75);
+
+        statsTable.classList.remove('hidden');
+        chartArea.classList.remove('hidden');
+        driverSearchArea.classList.remove('hidden');
+
+        drawChart(finalMsTimes, q25, q50, q75);
+    }
+
+    function showSuggestions() {
+        const input = document.getElementById('driverSearchInput').value.toLowerCase().trim();
+        const suggestionsList = document.getElementById('driverSuggestions');
+        suggestionsList.innerHTML = '';
+
+        if (input.length < 2) { suggestionsList.classList.add('hidden'); return; }
+        const filtered = uniqueDrivers.filter(d => d.toLowerCase().includes(input)).slice(0,10);
+        if (filtered.length === 0) { suggestionsList.classList.add('hidden'); return; }
+
+        filtered.forEach(name => {
+            const li = document.createElement('li');
+            li.className = 'p-2 cursor-pointer hover:bg-gray-700';
+            li.textContent = name;
+            li.onclick = () => addSelectedDriver(name);
+            suggestionsList.appendChild(li);
+        });
+        suggestionsList.classList.remove('hidden');
+    }
+
+    function addSelectedDriver(driverName) {
+        if (selectedDrivers.some(d => d.name === driverName)) return;
+        const color = driverColors[driverColorIndex % driverColors.length];
+        driverColorIndex++;
+        selectedDrivers.push({ name: driverName, color });
+        document.getElementById('driverSearchInput').value = '';
+        document.getElementById('driverSuggestions').classList.add('hidden');
+        updateSelectedDriversUI();
+        drawChart(finalMsTimes, quantile(finalMsTimes, 0.25), quantile(finalMsTimes, 0.50), quantile(finalMsTimes, 0.75));
+    }
+
+    function removeSelectedDriver(driverName) {
+        selectedDrivers = selectedDrivers.filter(d => d.name !== driverName);
+        updateSelectedDriversUI();
+        drawChart(finalMsTimes, quantile(finalMsTimes, 0.25), quantile(finalMsTimes, 0.50), quantile(finalMsTimes, 0.75));
+    }
+
+    function updateSelectedDriversUI() {
+        const container = document.getElementById('selectedDriversContainer');
+        const legend = document.getElementById('legendDrivers');
+        container.innerHTML = ''; legend.innerHTML = '';
+
+        selectedDrivers.forEach(driver => {
+            const chip = document.createElement('span');
+            chip.className = 'inline-flex items-center text-xs font-semibold px-3 py-1 rounded-full text-white cursor-pointer';
+            chip.style.backgroundColor = driver.color;
+            chip.textContent = driver.name;
+            chip.onclick = () => removeSelectedDriver(driver.name);
+
+            const removeIcon = document.createElement('span');
+            removeIcon.className = 'ml-1.5 font-bold';
+            removeIcon.innerHTML = '&times;';
+            chip.appendChild(removeIcon);
+            container.appendChild(chip);
+
+            const legendItem = document.createElement('span');
+            legendItem.className = 'mr-2 text-sm text-gray-300';
+            legendItem.innerHTML = `<span class="inline-block w-4 h-2 mr-1 rounded" style="background-color:${driver.color};"></span> ${driver.name}`;
+            legend.appendChild(legendItem);
+        });
+    }
+
+    function resizeCanvas() {
+        if (!chartCanvas) return;
+        const parent = chartCanvas.parentNode;
+        chartCanvas.width = parent.clientWidth;
+        chartCanvas.height = Math.max(220, parent.clientHeight - 10);
+    }
+
+    window.addEventListener('resize', () => {
+        resizeCanvas();
+        if (finalMsTimes && finalMsTimes.length > 0) {
+            drawChart(finalMsTimes, quantile(finalMsTimes, 0.25), quantile(finalMsTimes, 0.50), quantile(finalMsTimes, 0.75));
+        }
+    });
+
+    function getSmoothDistribution(times, minTime, maxTime) {
+        if (!times || times.length===0) return [];
+        const range = maxTime - minTime;
+        const resolution = 100;
+        const step = range / resolution;
+        const bandwidth = range / Math.max(8, Math.sqrt(times.length) * 1.5);
+        const distribution = [];
+        for (let i=0;i<=resolution;i++){
+            const timeX = minTime + i*step;
+            let density = 0;
+            times.forEach(t => {
+                const distance = Math.abs(t - timeX);
+                density += Math.exp(-0.5 * (distance / bandwidth) ** 2);
+            });
+            distribution.push({ x: timeX, y: density });
+        }
+        return distribution;
+    }
+
+    function msToTime(ms) {
+        if (!isFinite(ms)) return '-';
+        const totalSeconds = ms / 1000;
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        return `${minutes}:${seconds.toFixed(3).padStart(6,'0')}`;
+    }
+
+    function drawChart(data, q25, q50, q75) {
+        resizeCanvas();
+        if (!ctx || !data || data.length===0) return;
+        ctx.clearRect(0,0,chartCanvas.width,chartCanvas.height);
+
+        const minTime = data[0];
+        const maxTime = data[data.length-1];
+        const timeRange = maxTime - minTime;
+        const padding = { top: 12, bottom: 48, left: 64, right: 18 };
+        const chartWidth = chartCanvas.width - padding.left - padding.right;
+        const chartHeight = chartCanvas.height - padding.top - padding.bottom;
+
+        const mainDistribution = getSmoothDistribution(data, minTime, maxTime);
+        let maxDensity = 0;
+        mainDistribution.forEach(p => { if (p.y > maxDensity) maxDensity = p.y; });
+
+        const xToPx = (time) => padding.left + ((time - minTime) / timeRange) * chartWidth;
+
+        ctx.strokeStyle = '#374151'; ctx.fillStyle = '#9ca3af'; ctx.font = '11px Inter, sans-serif';
+        ctx.beginPath(); ctx.moveTo(padding.left, chartCanvas.height - padding.bottom); ctx.lineTo(chartCanvas.width - padding.right, chartCanvas.height - padding.bottom); ctx.stroke();
+
+        ctx.textAlign = 'left'; ctx.fillText(msToTime(minTime), padding.left, chartCanvas.height - padding.bottom + 18);
+        ctx.textAlign = 'right'; ctx.fillText(msToTime(maxTime), chartCanvas.width - padding.right, chartCanvas.height - padding.bottom + 18);
+        ctx.textAlign = 'center'; ctx.fillText(`Median: ${msToTime(q50)}`, xToPx(q50), chartCanvas.height - padding.bottom + 18);
+
+        const drawCurve = (distribution, color, isFill) => {
+            if (!distribution || distribution.length===0) return;
+            ctx.beginPath();
+            ctx.strokeStyle = color; ctx.lineWidth = 2;
+            ctx.moveTo(padding.left, chartCanvas.height - padding.bottom);
+            distribution.forEach((p) => {
+                const x = xToPx(p.x);
+                const y = chartCanvas.height - padding.bottom - (p.y / maxDensity) * chartHeight;
+                ctx.lineTo(x, y);
+            });
+            if (isFill) {
+                ctx.lineTo(chartCanvas.width - padding.right, chartCanvas.height - padding.bottom);
+                ctx.closePath();
+                ctx.fillStyle = color + '40';
+                ctx.fill();
+            }
+            ctx.stroke();
+        };
+
+        drawCurve(mainDistribution, '#4f46e5', true);
+
+        const quantiles = [{time:q25, color:'#10b981'}, {time:q50, color:'#4f46e5'}, {time:q75, color:'#10b981'}];
+        quantiles.forEach(q => {
+            const x = xToPx(q.time);
+            ctx.strokeStyle = q.color; ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.setLineDash([6,4]); ctx.moveTo(x, padding.top); ctx.lineTo(x, chartCanvas.height - padding.bottom); ctx.stroke(); ctx.setLineDash([]);
+        });
+    }
+
+    window.onload = () => {
+        resizeCanvas();
+        loadAndRender();
+    };
+</script>
+</body>
+</html>
+
+```
