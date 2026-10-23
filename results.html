@@ -1,16 +1,3 @@
-Here is your fully updated code with the requested behavior:
-
-1. **Working Pop-Out/Hide Functionality**: Fixed the JavaScript handlers so clicking the side tab expands the mobile merch box seamlessly, and clicking the `×` button minimizes it right back into the side tab.
-
-
-2. **Initial Attention Movement & Half-Screen Look**: When the page loads on mobile, the merch card starts fully expanded with a subtle attention-grabbing pulse animation (`animate-bounce` / slide effect) so users notice it immediately, without being intrusive.
-
-
-3. **Easy Dismissal**: Users can click the `×` button anytime to tuck it away into the side tab.
-
-
-
-```html
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -335,9 +322,9 @@ Here is your fully updated code with the requested behavior:
         </div>
     </div>
 
-    <!-- MOBILE FLOATING MERCH OVERLAY (PHONE ONLY - NOTICES USER WITH SLIGHT BOUNCE ON LOAD) -->
-    <div id="mobile-merch-overlay" class="xl:hidden fixed bottom-4 right-4 z-50 w-11/12 max-w-sm bg-gray-900/95 border-2 border-amber-500 shadow-2xl p-4 rounded-xl transition-all duration-300 animate-bounce">
-        <button onclick="hideMobileMerch()" class="absolute top-2 right-3 text-gray-400 hover:text-white text-xl font-bold">&times;</button>
+    <!-- MOBILE FLOATING MERCH OVERLAY (PHONE ONLY - BOUNCES ON LOAD, HIGHEST LAYER PRIORITY) -->
+    <div id="mobile-merch-overlay" style="position: fixed; bottom: 16px; right: 16px; z-index: 99999; pointer-events: auto;" class="xl:hidden w-11/12 max-w-sm bg-gray-900/95 border-2 border-amber-500 shadow-2xl p-4 rounded-xl transition-all duration-300 animate-bounce">
+        <button id="close-merch-btn" style="position: absolute; top: 8px; right: 12px; z-index: 100000; cursor: pointer;" class="text-gray-400 hover:text-white text-2xl font-bold px-2 py-1">&times;</button>
         <div class="text-xs uppercase tracking-wider text-amber-400 font-bold mb-2">👕 Official SLR Merch</div>
         <a href="https://www.amazon.de/dp/B0G2CMT37W" target="_blank" rel="sponsored" class="flex items-center gap-3 text-left">
             <img src="https://m.media-amazon.com/images/I/B1pppR4gVKL._CLa%7C2140%2C2000%7C71rK0MTWClL.png%7C0%2C0%2C2140%2C2000%2B0.0%2C0.0%2C2140.0%2C2000.0_AC_SX466_.png" alt="SLR Merch" class="w-20 h-20 object-cover rounded-lg border border-gray-700 flex-shrink-0">
@@ -349,23 +336,32 @@ Here is your fully updated code with the requested behavior:
     </div>
 
     <!-- FLOATING POP-OUT TAB (APPEARS WHEN OVERLAY IS CLOSED) -->
-    <button id="mobile-merch-tab" onclick="showMobileMerch()" class="hidden xl:hidden fixed bottom-6 right-0 z-50 bg-amber-500 hover:bg-amber-400 text-gray-900 font-bold text-xs px-3.5 py-3 rounded-l-xl shadow-2xl flex items-center gap-1.5 transition-all">
+    <button id="mobile-merch-tab" style="position: fixed; bottom: 24px; right: 0px; z-index: 99999; pointer-events: auto;" class="hidden xl:hidden bg-amber-500 hover:bg-amber-400 text-gray-900 font-bold text-xs px-3.5 py-3 rounded-l-xl shadow-2xl flex items-center gap-1.5 transition-all cursor-pointer">
         👕 <span>Merch</span>
     </button>
 
 <script>
-    // Functions to toggle mobile merch popup & remove bounce after first load
-    function hideMobileMerch() {
+    // Robust Touch & Click Handlers for Mobile Buttons
+    document.addEventListener("DOMContentLoaded", () => {
         const overlay = document.getElementById('mobile-merch-overlay');
-        overlay.classList.add('hidden');
-        document.getElementById('mobile-merch-tab').classList.remove('hidden');
-    }
+        const tab = document.getElementById('mobile-merch-tab');
+        const closeBtn = document.getElementById('close-merch-btn');
 
-    function showMobileMerch() {
-        const overlay = document.getElementById('mobile-merch-overlay');
-        overlay.classList.remove('hidden', 'animate-bounce'); // Remove bounce so it doesn't repeat annoyingly
-        document.getElementById('mobile-merch-tab').classList.add('hidden');
-    }
+        // Close button action
+        closeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            overlay.style.display = 'none';
+            tab.style.display = 'flex';
+        });
+
+        // Tab open action
+        tab.addEventListener('click', (e) => {
+            e.stopPropagation();
+            overlay.style.display = 'block';
+            overlay.classList.remove('animate-bounce'); // Stop bounce after first open
+            tab.style.display = 'none';
+        });
+    });
 
     // ========================================================
     // CONFIGURATION: BLACKLIST & FEATURED WHITELIST SECTION
