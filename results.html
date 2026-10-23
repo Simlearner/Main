@@ -1,13 +1,3 @@
-My apologies for that regression! The issue happened because some mobile browsers dropped the external Amazon image preview links due to strict CORS / hotlinking rules or missing query wrappers.
-
-To fix this once and for all:
-
-1. **Reliable Image Sources**: We've updated the image links to use direct Amazon media format URLs that load instantly and reliably on all mobile devices (iOS & Android).
-2. **Guaranteed Clickable Layout**: Every image, text title, and button is now explicitly wrapped in its own clean link block with absolute highest layer priority (`z-index: 100001; pointer-events: auto;`), ensuring your taps register immediately.
-
-Here is your fully corrected code:
-
-```html
 <!DOCTYPE html>
 <html lang="de">
 <head>
