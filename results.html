@@ -1,10 +1,3 @@
-That happens because inside JavaScript template strings or standard HTML insertion, raw pipe characters can sometimes be treated or stripped depending on context, or if the name string is evaluated as inner HTML where a single `|` gets misinterpreted or hidden by text-node rendering.
-
-To fix this reliably so that clan tags like `| SLR` show up crisp and clear everywhere on the page, we can explicitly encode the character using its HTML entity code (`&#124;`) or sanitize/replace standard pipes during row creation.
-
-Here is the fully fixed and complete code:
-
-```html
 <!DOCTYPE html>
 <html lang="de">
 <head>
