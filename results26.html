@@ -1,12 +1,8 @@
-Here is the complete, fully updated page code incorporating all your new requests:
+Here is the fully updated code implementing your latest layout and configuration changes:
 
-### What Was Updated:
-
-1. **Blacklist Applied to 3D Podium**: Drivers with blacklisted Steam IDs are now strictly filtered out before calculating the top 3 fastest cars on the podium.
-2. **Enhanced Whitelist & Clan Tag Search**: Whitelisted clan tag checks now scan every name used by drivers. Toggling "Featured Drivers" updates the dedicated **Special Leaderboard View** instantly without requiring a page reload.
-3. **Side Racing Car Cards**: Added visually engaging cards on the right sidebar showcasing high-resolution racing images.
-4. **Donation Section**: Added a PayPal donation section with a humorous "pay for our server fuel" description and a custom PayPal form/button snippet ready for your link.
-5. **SLR Mission Statement**: Integrated a styled section highlighting SimLearnerRacing's core mission statement and story.
+1. **Side Images Layout**: Placed racing car images on both the left and right sides of the main content area (using a 3-column layout grid: Left Images / Center Table & Analysis / Right Images), designed to scale nicely on desktop and overflow cleanly on mobile without affecting table width.
+2. **Centered Mission Statement**: Moved and centered the **SLR Mission Statement** right below the main header section.
+3. **Updated Blacklist & Whitelist**: Automatically added Steam ID `76561198155538912` to the blacklist, and both `| SLR` and `|SLR` to the whitelisted clan tag substrings.
 
 ```html
 <!DOCTYPE html>
@@ -53,7 +49,7 @@ Here is the complete, fully updated page code incorporating all your new request
 </head>
 <body class="p-4 md:p-8 min-h-screen">
 
-    <div id="app" class="max-w-7xl xl:max-w-[1550px] mx-auto">
+    <div id="app" class="max-w-7xl xl:max-w-[1700px] mx-auto">
         <header class="text-center mb-6 p-6 bg-gray-800 rounded-xl shadow-2xl">
             <nav class="flex justify-between items-center max-w-7xl xl:max-w-[1550px] mx-auto">
                 <a href="index.html" class="flex-shrink-0">
@@ -68,19 +64,42 @@ Here is the complete, fully updated page code incorporating all your new request
             <p class="text-sm sm:text-base text-gray-400">Zoom at Monza 1 & 2 & ONE — 14°Celsius BOP [-40KG]</p>
         </header>
 
+        <!-- CENTERED MISSION STATEMENT -->
+        <div class="max-w-4xl mx-auto mb-8 bg-gray-800/90 border border-indigo-500/30 rounded-xl p-6 text-center shadow-lg">
+            <h3 class="text-xl font-bold text-white mb-2 flex items-center justify-center gap-2">🏁 SLR Mission Statement</h3>
+            <p class="text-xs sm:text-sm text-gray-300 leading-relaxed">
+                <strong>SimLearnerRacing (SLR)</strong> was founded on the belief that racing is more than a sport — it is a lifestyle that brings people together through passion, competition, and ambition.
+            </p>
+            <p class="text-xs sm:text-sm text-gray-300 leading-relaxed mt-2">
+                SLR provides coaching for drivers of all skill levels, from hobby racers to elite alien-level competitors, alongside professionally managed servers for Assetto Corsa Competizione and upcoming support for Assetto Corsa EVO. Through coaching, community events, and competitive racing, SLR creates a home for drivers to grow, compete, and share their passion for motorsport.
+            </p>
+        </div>
+
         <div id="loading" class="text-center text-blue-400 font-semibold mt-6">Loading Laptimes and Driver data from Simlearner servers...</div>
         <div id="error-message" class="hidden p-4 bg-red-800 text-white rounded-lg shadow-md text-center">
             Error loading the data. Ensure, the correct <strong>Spreadsheet ID</strong> is used and the document is public on the web.
         </div>
 
-        <!-- MAIN LAYOUT: LEFT CONTENT & RIGHT SIDEBAR -->
-        <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        <!-- MAIN LAYOUT: LEFT SIDEBAR PICTURES, CENTER CONTENT, RIGHT SIDEBAR PICTURES & DONATION -->
+        <div class="grid grid-cols-1 xl:grid-cols-5 gap-8 items-start">
             
-            <!-- MAIN CONTENT AREA (3 COLS) -->
-            <div class="lg:col-span-3">
+            <!-- LEFT SIDEBAR: RACING PICTURES (1 COL ON XL) -->
+            <div class="hidden xl:flex flex-col space-y-6">
+                <div class="bg-gray-800/90 border border-gray-700 rounded-xl overflow-hidden shadow-lg">
+                    <img src="https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?auto=format&fit=crop&w=800&q=80" alt="GT3 Racing Monza" class="w-full h-56 object-cover hover:scale-105 transition-transform duration-300">
+                    <div class="p-3 text-center text-xs text-gray-400">Pure GT3 Monza Speed</div>
+                </div>
+                <div class="bg-gray-800/90 border border-gray-700 rounded-xl overflow-hidden shadow-lg">
+                    <img src="https://images.unsplash.com/photo-1511919884226-fd3cad34687c?auto=format&fit=crop&w=800&q=80" alt="Supercar Night Racing" class="w-full h-56 object-cover hover:scale-105 transition-transform duration-300">
+                    <div class="p-3 text-center text-xs text-gray-400">Night Stints & Focus</div>
+                </div>
+            </div>
+
+            <!-- CENTER CONTENT AREA (3 COLS ON XL) -->
+            <div class="xl:col-span-3 space-y-8">
                 
                 <!-- 3D CAR PODIUM SECTION -->
-                <div id="podium-section" class="hidden my-4 max-w-5xl mx-auto">
+                <div id="podium-section" class="hidden max-w-5xl mx-auto">
                     <h2 class="text-2xl font-bold text-center text-white mb-6 tracking-wide uppercase">🏎️ Fastest Cars Podium</h2>
                     <div class="podium-container grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
                         <!-- 2nd Place -->
@@ -111,7 +130,7 @@ Here is the complete, fully updated page code incorporating all your new request
                 </div>
 
                 <!-- SELECTED & FEATURED DRIVERS SPECIAL TABLE SECTION -->
-                <div id="special-drivers-section" class="hidden my-8 bg-gray-900/80 border border-indigo-500/30 rounded-xl p-4 shadow-xl">
+                <div id="special-drivers-section" class="hidden bg-gray-900/80 border border-indigo-500/30 rounded-xl p-4 shadow-xl">
                     <h3 class="text-xl font-bold text-white mb-3 flex items-center gap-2">
                         <span>⭐ Selected & Featured Drivers View</span>
                     </h3>
@@ -135,7 +154,7 @@ Here is the complete, fully updated page code incorporating all your new request
                 </div>
 
                 <!-- ANALYSE-UI -->
-                <div id="analysis-ui" class="hidden mt-8 p-6 bg-white/5 rounded-xl border border-gray-700">
+                <div id="analysis-ui" class="hidden p-6 bg-white/5 rounded-xl border border-gray-700">
                     <h2 class="text-2xl font-bold text-white mb-3">Laptime-Distributionanalysis & Quantiles</h2>
                     <p class="text-sm text-gray-300 mb-4">Data will be read from Table (Laptime in ms and Name(s)).</p>
 
@@ -203,7 +222,7 @@ Here is the complete, fully updated page code incorporating all your new request
                 </div>
 
                 <!-- MAIN TABLE -->
-                <div id="data-container" class="hidden mt-6">
+                <div id="data-container" class="hidden">
                     <div class="flex flex-wrap items-center justify-between gap-4 mb-4 bg-gray-800/80 p-4 rounded-xl border border-gray-700">
                         <p class="text-sm text-gray-300">Showing <span id="displayed-count">0</span> of <span id="total-count">0</span> entries</p>
                         <div class="flex flex-wrap gap-3">
@@ -240,28 +259,10 @@ Here is the complete, fully updated page code incorporating all your new request
                 </div>
             </div>
 
-            <!-- RIGHT SIDEBAR: PICTURES, DONATION & MISSION STATEMENT -->
-            <div class="lg:col-span-1 space-y-6">
-                
-                <!-- SLR MISSION STATEMENT CARD -->
-                <div class="bg-gray-800/90 border border-indigo-500/30 rounded-xl p-5 shadow-lg">
-                    <h3 class="text-xl font-bold text-white mb-2 flex items-center gap-2">🏁 SLR Mission Statement</h3>
-                    <p class="text-xs text-gray-300 leading-relaxed">
-                        <strong>SimLearnerRacing (SLR)</strong> was founded on the belief that racing is more than a sport — it is a lifestyle that brings people together through passion, competition, and ambition.
-                    </p>
-                    <p class="text-xs text-gray-300 leading-relaxed mt-2">
-                        SLR provides coaching for drivers of all skill levels, from hobby racers to elite alien-level competitors, alongside professionally managed servers for Assetto Corsa Competizione and upcoming support for Assetto Corsa EVO.
-                    </p>
-                </div>
-
-                <!-- RACING PICTURES CARDS -->
+            <!-- RIGHT SIDEBAR: PICTURES & DONATION (1 COL ON XL) -->
+            <div class="hidden xl:flex flex-col space-y-6">
                 <div class="bg-gray-800/90 border border-gray-700 rounded-xl overflow-hidden shadow-lg">
-                    <img src="https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?auto=format&fit=crop&w=800&q=80" alt="GT3 Racing Monza" class="w-full h-48 object-cover hover:scale-105 transition-transform duration-300">
-                    <div class="p-3 text-center text-xs text-gray-400">Pure GT3 Monza Speed</div>
-                </div>
-
-                <div class="bg-gray-800/90 border border-gray-700 rounded-xl overflow-hidden shadow-lg">
-                    <img src="https://images.unsplash.com/photo-1541348263662-e082662d82da?auto=format&fit=crop&w=800&q=80" alt="Sim Racing Cockpit" class="w-full h-48 object-cover hover:scale-105 transition-transform duration-300">
+                    <img src="https://images.unsplash.com/photo-1541348263662-e082662d82da?auto=format&fit=crop&w=800&q=80" alt="Sim Racing Cockpit" class="w-full h-56 object-cover hover:scale-105 transition-transform duration-300">
                     <div class="p-3 text-center text-xs text-gray-400">Close Battles & Apex Hunting</div>
                 </div>
 
@@ -273,13 +274,11 @@ Here is the complete, fully updated page code incorporating all your new request
                         If you shaved off 0.2s today or enjoy our leaderboards, consider throwing a small tip into our fuel tank to keep our digital engines revving. 🏎️💨
                     </p>
                     
-                    <!-- Hardcoded PayPal Donation Snippet Placeholder -->
                     <a href="https://www.paypal.com" target="_blank" class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-yellow-500 hover:bg-yellow-400 text-gray-900 font-extrabold rounded-lg shadow-md transition duration-200">
                         <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944 3.72a.77.77 0 0 1 .762-.647h6.29c2.81 0 4.888.601 5.85 1.688.922 1.042 1.05 2.607.382 4.654-.863 2.645-2.83 4.195-5.853 4.195H9.686a.642.642 0 0 0-.633.541l-.986 6.18a.642.642 0 0 1-.991.006z"/></svg>
                         Donate for Server Fuel
                     </a>
                 </div>
-
             </div>
         </div>
     </div>
@@ -289,7 +288,6 @@ Here is the complete, fully updated page code incorporating all your new request
     // CONFIGURATION: BLACKLIST & FEATURED WHITELIST SECTION
     // ========================================================
     const BLACKLISTED_STEAM_IDS = [
-        // Add Steam IDs here as strings to blacklist
         '76561198155538912'
     ];
 
@@ -298,7 +296,7 @@ Here is the complete, fully updated page code incorporating all your new request
     ];
 
     const WHITELISTED_NAME_SUBSTRINGS = [
-        '| SLR', // Clan tags search whitelist
+        '| SLR',
         '|SLR'
     ];
     // ========================================================
@@ -427,13 +425,11 @@ Here is the complete, fully updated page code incorporating all your new request
         return parsed;
     }
 
-    // ---------- Build 3D Podium for Top 3 Fastest Cars (Filtered) ----------
     function build3DPodium(driverData) {
         const fastestCars = [];
         const seenCars = new Set();
 
         for (const driver of driverData) {
-            // Guarantee blacklisted drivers are excluded
             if (BLACKLISTED_STEAM_IDS.includes(driver.steam_id)) continue;
 
             if (driver.car && driver.car !== 'Unbekannt' && !seenCars.has(driver.car)) {
@@ -556,7 +552,6 @@ Here is the complete, fully updated page code incorporating all your new request
         const driversToDisplay = [];
         const seenSteamIds = new Set();
 
-        // 1. Add Selected Drivers
         selectedDrivers.forEach(sel => {
             const matches = fullDriverData.filter(d => 
                 d.names_used.some(n => n.toLowerCase() === sel.name.toLowerCase()) ||
@@ -571,7 +566,6 @@ Here is the complete, fully updated page code incorporating all your new request
             });
         });
 
-        // 2. Add Whitelisted / Featured Drivers across all driver names
         if (featuredDriversActive) {
             fullDriverData.forEach((d, idx) => {
                 const isWhitelistedId = WHITELISTED_STEAM_IDS.includes(d.steam_id);
