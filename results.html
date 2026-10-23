@@ -57,7 +57,7 @@
             <p class="text-sm sm:text-base text-gray-400">Zoom at Monza 1 & 2 & ONE — 14°Celsius BOP [-40KG]</p>
         </header>
 
-        <!-- CENTERED MISSION STATEMENT & COACHING BUTTON -->
+        <!-- CENTERED MISSION STATEMENT & ACTION BUTTONS -->
         <div class="max-w-4xl mx-auto mb-8 bg-gray-800/90 border border-indigo-500/30 rounded-xl p-6 text-center shadow-lg">
             <h3 class="text-xl font-bold text-white mb-2 flex items-center justify-center gap-2">🏁 SLR Mission Statement</h3>
             <p class="text-xs sm:text-sm text-gray-300 leading-relaxed">
@@ -66,9 +66,12 @@
             <p class="text-xs sm:text-sm text-gray-300 leading-relaxed mt-2">
                 SLR provides coaching for drivers of all skill levels, from hobby racers to elite alien-level competitors, alongside professionally managed servers for Assetto Corsa Competizione and upcoming support for Assetto Corsa EVO. Through coaching, community events, and competitive racing, SLR creates a home for drivers to grow, compete, and share their passion for motorsport.
             </p>
-            <div class="mt-5">
+            <div class="mt-5 flex flex-wrap justify-center gap-3">
                 <a href="https://simlearner.github.io/Main/booking.html" target="_blank" class="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold rounded-xl shadow-lg transition duration-200">
                     🎯 Book Professional Coaching
+                </a>
+                <a href="setups.html" class="inline-flex items-center gap-2 px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white font-extrabold rounded-xl shadow-lg border border-gray-500 transition duration-200">
+                    ⚙️ Free Setups
                 </a>
             </div>
         </div>
@@ -81,12 +84,25 @@
         <!-- MAIN LAYOUT -->
         <div class="grid grid-cols-1 xl:grid-cols-5 gap-8 items-start">
             
-            <!-- LEFT SIDEBAR: RACING PICTURES (DESKTOP ONLY) -->
+            <!-- LEFT SIDEBAR: RACING PICTURES & MERCH T-SHIRT (DESKTOP ONLY) -->
             <div class="hidden xl:flex flex-col space-y-6">
                 <div class="bg-gray-800/90 border border-gray-700 rounded-xl overflow-hidden shadow-lg">
                     <img src="https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?auto=format&fit=crop&w=800&q=80" alt="GT3 Racing Monza" class="w-full h-56 object-cover hover:scale-105 transition-transform duration-300">
                     <div class="p-3 text-center text-xs text-gray-400">Pure GT3 Monza Speed</div>
                 </div>
+                
+                <!-- AMAZON MERCH T-SHIRT CARD -->
+                <div class="bg-gray-800/90 border border-amber-500/40 rounded-xl overflow-hidden shadow-lg p-4 text-center">
+                    <div class="text-xs uppercase tracking-wider text-amber-400 font-bold mb-2">👕 Official SLR Merch</div>
+                    <a href="YOUR_AMAZON_PRODUCT_LINK_HERE" target="_blank" rel="sponsored">
+                        <img src="https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=800&q=80" alt="SLR Racing T-Shirt" class="w-full h-48 object-cover rounded-lg hover:scale-105 transition-transform duration-300 mb-3">
+                        <p class="text-xs font-semibold text-white hover:text-amber-300 transition-colors">SLR Limited Edition Racing T-Shirt</p>
+                    </a>
+                    <a href="YOUR_AMAZON_PRODUCT_LINK_HERE" target="_blank" rel="sponsored" class="mt-3 inline-block w-full py-2 bg-amber-500 hover:bg-amber-400 text-gray-900 font-bold text-xs rounded-lg shadow transition">
+                        View on Amazon 🛒
+                    </a>
+                </div>
+
                 <div class="bg-gray-800/90 border border-gray-700 rounded-xl overflow-hidden shadow-lg">
                     <img src="https://images.unsplash.com/photo-1511919884226-fd3cad34687c?auto=format&fit=crop&w=800&q=80" alt="Supercar Night Racing" class="w-full h-56 object-cover hover:scale-105 transition-transform duration-300">
                     <div class="p-3 text-center text-xs text-gray-400">Night Stints & Focus</div>
@@ -275,6 +291,18 @@
                 <div class="bg-gray-800/90 border border-gray-700 rounded-xl overflow-hidden shadow-lg">
                     <img src="https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&w=800&q=80" alt="Sim Racing Wheel Cockpit" class="w-full h-56 object-cover hover:scale-105 transition-transform duration-300">
                     <div class="p-3 text-center text-xs text-gray-400">Close Battles & Apex Hunting</div>
+                </div>
+
+                <!-- AMAZON MERCH T-SHIRT CARD (RIGHT SIDEBAR) -->
+                <div class="bg-gray-800/90 border border-amber-500/40 rounded-xl overflow-hidden shadow-lg p-4 text-center">
+                    <div class="text-xs uppercase tracking-wider text-amber-400 font-bold mb-2">👕 Official SLR Merch</div>
+                    <a href="https://www.amazon.de/dp/B0HJJQVWKB" target="_blank" rel="sponsored">
+                        <img src="https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=800&q=80" alt="SLR Racing T-Shirt" class="w-full h-48 object-cover rounded-lg hover:scale-105 transition-transform duration-300 mb-3">
+                        <p class="text-xs font-semibold text-white hover:text-amber-300 transition-colors">SLR Limited Edition Racing T-Shirt</p>
+                    </a>
+                    <a href="https://www.amazon.de/dp/B0HJJQVWKB" target="_blank" rel="sponsored" class="mt-3 inline-block w-full py-2 bg-amber-500 hover:bg-amber-400 text-gray-900 font-bold text-xs rounded-lg shadow transition">
+                        View on Amazon 🛒
+                    </a>
                 </div>
 
                 <!-- DONATION CARD (DESKTOP SIDEBAR) -->
@@ -876,7 +904,7 @@
         drawCurve(mainDistribution, '#4f46e5', true);
 
         const quantiles = [{time:q25, color:'#10b981'}, {time:q50, color:'#4f46e5'}, {time:q75, color:'#10b981'}];
-        quantiles.forEach(q => {
+        quantiles.export = quantiles.forEach(q => {
             const x = xToPx(q.time);
             ctx.strokeStyle = q.color; ctx.lineWidth = 1.5;
             ctx.beginPath(); ctx.setLineDash([6,4]); ctx.moveTo(x, padding.top); ctx.lineTo(x, chartCanvas.height - padding.bottom); ctx.stroke(); ctx.setLineDash([]);
@@ -912,5 +940,3 @@
 </script>
 </body>
 </html>
-
-```
