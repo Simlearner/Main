@@ -322,11 +322,11 @@
         </div>
     </div>
 
-    <!-- MOBILE FLOATING MERCH OVERLAY (PHONE ONLY - INITIALLY HIDDEN UNLESS USER CLICKS THE MERCH TAB) -->
+    <!-- MOBILE EXPANDABLE MERCH OVERLAY (PHONE ONLY - INITIALLY HIDDEN) -->
     <div id="mobile-merch-overlay" style="display: none; position: fixed; bottom: 16px; right: 16px; z-index: 99999; pointer-events: auto; max-height: 80vh; overflow-y: auto;" class="xl:hidden w-11/12 max-w-sm bg-gray-900/95 border-2 border-amber-500 shadow-2xl p-4 rounded-xl transition-all duration-300">
         <button id="close-merch-btn" style="position: absolute; top: 8px; right: 12px; z-index: 100000; cursor: pointer;" class="text-gray-400 hover:text-white text-2xl font-bold px-2 py-1">&times;</button>
         
-        <!-- SCROLLABLE MERCH CONTAINER FOR PHONE -->
+        <!-- SCROLLABLE MERCH CONTAINER FOR PHONE (BOTH ITEMS) -->
         <div class="space-y-4 pt-2">
             <!-- Item 1: T-Shirt -->
             <div class="bg-gray-800/90 border border-amber-500/40 rounded-xl overflow-hidden shadow-lg p-3 text-center">
@@ -340,7 +340,7 @@
                 </a>
             </div>
 
-            <!-- Item 2: PopSocket / Gadget (Matches Right Sidebar) -->
+            <!-- Item 2: PopSocket / Gadget -->
             <div class="bg-gray-800/90 border border-amber-500/40 rounded-xl overflow-hidden shadow-lg p-3 text-center">
                 <div class="text-xs uppercase tracking-wider text-amber-400 font-bold mb-1">👕 Official SLR Merch</div>
                 <a href="https://www.amazon.de/dp/B0HJJQVWKB" target="_blank" rel="sponsored">
@@ -354,10 +354,11 @@
         </div>
     </div>
 
-    <!-- FLOATING POP-OUT TAB (VISIBLE BY DEFAULT ON PHONE TO OPEN THE MERCH ADS) -->
-    <button id="mobile-merch-tab" style="position: fixed; bottom: 24px; right: 0px; z-index: 99999; pointer-events: auto;" class="xl:hidden bg-amber-500 hover:bg-amber-400 text-gray-900 font-bold text-xs px-3.5 py-3 rounded-l-xl shadow-2xl flex items-center gap-1.5 transition-all cursor-pointer animate-bounce">
-        👕 <span>Merch</span>
-    </button>
+    <!-- FLOATING ACTUAL MERCH IMAGE/SYMBOL (VISIBLE BY DEFAULT TO OPEN THE OVERLAY) -->
+    <div id="mobile-merch-tab" style="position: fixed; bottom: 20px; right: 0px; z-index: 99999; pointer-events: auto;" class="xl:hidden bg-gray-900 border-2 border-r-0 border-amber-500 rounded-l-xl p-2 shadow-2xl cursor-pointer animate-bounce flex items-center gap-2">
+        <img src="https://m.media-amazon.com/images/I/B1pppR4gVKL._CLa%7C2140%2C2000%7C71rK0MTWClL.png%7C0%2C0%2C2140%2C2000%2B0.0%2C0.0%2C2140.0%2C2000.0_AC_SX466_.png" alt="Merch" class="w-12 h-12 object-cover rounded-lg border border-amber-500">
+        <span class="text-amber-400 font-extrabold text-xs pr-2">Merch 👕</span>
+    </div>
 
 <script>
     // Robust Touch & Click Handlers for Mobile Merch Pop-out
@@ -366,14 +367,14 @@
         const tab = document.getElementById('mobile-merch-tab');
         const closeBtn = document.getElementById('close-merch-btn');
 
-        // Close button action (Hides ads, brings back the "Merch" tab)
+        // Close button action (Hides ads, brings back the merch symbol tab)
         closeBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             overlay.style.display = 'none';
             tab.style.display = 'flex';
         });
 
-        // Tab click action (Opens ads, hides the tab)
+        // Tab click action (Opens full ads overlay, hides the symbol tab)
         tab.addEventListener('click', (e) => {
             e.stopPropagation();
             overlay.style.display = 'block';
